@@ -1,0 +1,117 @@
+# SceneChain
+
+SceneChain is a research prototype comparing manual password login with a
+five-stage graphical passphrase. Each stage combines a location on a stable
+full-scene image with a discrete directional action.
+
+The experiment has three conditions:
+
+- a manual password baseline;
+- direct SceneChain, optimized for entry speed;
+- shielded SceneChain, designed to retain location uncertainty after one
+  observed login.
+
+SceneChain is a knowledge factor. It is not phishing-resistant, it is not
+multi-factor authentication, and it does not replace passkeys. Direct mode is
+assumed compromised after a clear recording. Shielded mode is expected to weaken
+across repeated observations. Those boundaries are part of the research.
+
+## Core interaction
+
+During enrollment, a participant receives five system-assigned CC0 cue scenes.
+For every scene, the participant chooses any canonical cell
+and one of four directions. During authentication, the user recognizes the five scenes
+inside a shuffled public scene pool; the server never labels which scenes belong to the account. The five scenes
+appear in the same order and the complete chain is evaluated only at the end.
+
+Correctness-dependent scene branching is intentionally prohibited because a
+known scene sequence would turn the next scene into a partial-password oracle.
+
+Coordinates are normalized against an immutable 3:2 scene derivative and snapped
+to a 24 by 16 grid. Raw pointer coordinates, freehand geometry, pressure, and
+timing are not credential material.
+
+## Documents
+
+- [Reviewed protocol](docs/protocol.md)
+- [Threat model](docs/threat-model.md)
+- [Scene-pack and cell policy](docs/scene-pack.md)
+- [Scene-pack selection record](docs/scene-pack-selection.md)
+- [Application architecture](docs/architecture.md)
+- [Security baseline](docs/security-baseline.md)
+- [ASVS evidence map](docs/asvs-evidence.md)
+- [Implemented threat review](docs/implementation-threat-review.md)
+- [Research plan](docs/research-plan.md)
+- [Preregistration](docs/preregistration.md)
+- [Power analysis](docs/power-analysis.md)
+- [Participant information](docs/participant-information.md)
+- [Consent form](docs/consent-form.md)
+- [Retention and deletion](docs/retention-deletion-plan.md)
+- [Data-protection assessment](docs/data-protection-impact-assessment.md)
+- [Ethics application package](docs/ethics-application.md)
+- [Researcher runbook](docs/researcher-runbook.md)
+- [Protocol-to-implementation conformance](docs/protocol-conformance.md)
+- [Performance budgets](docs/performance-budget.md)
+- [Final verification evidence](docs/final-review-2026-07-22/README.md)
+
+## Run the prototype
+
+Copy `.env.example` to `.env`, replace every development secret, then run:
+
+```bash
+docker compose up --build
+```
+
+Open `http://localhost:8088`. PostgreSQL data persists in a named volume; Redis
+is deliberately ephemeral because it stores attempts, enrollment state, rate
+limits, and sessions. Stop the stack with `docker compose down`. Add `-v` only
+when you intentionally want to delete enrolled development accounts.
+
+For deployment, combine `docker-compose.yml` with
+`docker-compose.prod.yml`, supply every required secret, and place the included
+`deploy/Caddyfile.example` behind the loopback-bound frontend. The production
+overlay enables secure cookies and separates Flyway's migration role from the
+runtime application role.
+
+Useful verification commands are:
+
+```bash
+docker compose config --quiet
+docker compose run --rm backend mvn test
+docker compose run --rm frontend npm run build
+docker compose run --rm frontend npm test
+python3 scripts/validate_scene_pack.py path/to/formal-manifest.json
+```
+
+The local-only scene reviewer binds to loopback and edits the staging manifest
+only after explicit operator actions:
+
+```bash
+python3 scripts/review_scene_pack.py
+```
+
+Open `http://127.0.0.1:8091`. It supports independent crop and eligible-cell
+approval and refuses to mark a pack approved until all 48 scenes have both
+reviews. Recommended-cell metadata is retained only for offline analysis; the
+participant interface exposes all 384 cells and never displays recommendations.
+The application backend validates the frozen manifest plus canonical, delivery,
+and thumbnail hashes independently at startup. A configured formal pack fails
+closed if any check differs.
+
+## Current status
+
+The repository contains the complete in-scope research implementation:
+versioned informed consent with an understanding gate, enrollment and two full
+confirmations, server-assigned crossover state, direct, shielded, and password
+trials, workload and retention flows, constrained secondary-outcome entry,
+participant deletion, audited pseudonymised exports, Redis-backed single-use
+attempts, PostgreSQL migrations, cryptographic test vectors, responsive public
+information, desktop/laptop study UI, and a production-oriented Compose overlay.
+
+The 48-image CC0 pack, protocol, policy, preregistration text, data schema, and
+internal release evidence are frozen. The normative sources are `docs/protocol.md`
+and `docs/protocol-conformance.md`; older review files are historical only.
+Recruitment remains technically closed until the preregistration identifier,
+pilot-derived duration, institutional contacts, compensation, hosting details,
+written ethics decision, and written data-protection decision are complete and
+recorded in the release gate.

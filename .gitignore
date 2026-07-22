@@ -5,6 +5,7 @@ frontend/dist/
 *.tsbuildinfo
 __pycache__/
 *.pyc
+scene-pack/review/
 playwright-report/
 test-results/
 .idea/
