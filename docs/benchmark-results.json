@@ -1,0 +1,25 @@
+{
+  "measuredAt": "2026-07-22",
+  "environment": "local Docker Compose, warm Docker-to-host bridge HTTP, 50 samples",
+  "samples": 50,
+  "http": {
+    "landing_ms": { "median": 6.06, "p95": 9.17 },
+    "pack_status_ms": { "median": 12.59, "p95": 17.16 }
+  },
+  "formal_scene_assets": {
+    "count": 48,
+    "total_bytes": 11974592,
+    "median_bytes": 190344
+  },
+  "gallery_thumbnails": {
+    "count": 48,
+    "total_bytes": 1014532,
+    "decoded_rgba_bytes": 29491200
+  },
+  "estimated_gallery_plus_selected_scene_decoded_rgba_bytes": 39321600,
+  "limitations": [
+    "Local warm HTTP latency is not production network latency.",
+    "Decoded-memory value is a conservative pixel-buffer estimate, not a browser heap measurement.",
+    "Argon2 concurrency and end-to-end authentication latency require production-sized load testing before recruitment."
+  ]
+}
