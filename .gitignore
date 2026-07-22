@@ -1,0 +1,12 @@
+.env
+backend/target/
+frontend/node_modules/
+frontend/dist/
+*.tsbuildinfo
+__pycache__/
+*.pyc
+playwright-report/
+test-results/
+.idea/
+.vscode/
+*.log
