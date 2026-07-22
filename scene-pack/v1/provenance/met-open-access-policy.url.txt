@@ -1,0 +1,2 @@
+https://www.metmuseum.org/policies/image-resources
+Capture deferred after institutional HTTP rate limit.
