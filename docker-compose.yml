@@ -1,0 +1,69 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: scenechain
+      POSTGRES_USER: scenechain
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-scenechain_dev}
+    volumes:
+      - scenechain-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U scenechain -d scenechain"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks: [internal]
+
+  redis:
+    image: redis:8-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks: [internal]
+
+  backend:
+    build: ./backend
+    environment:
+      DATABASE_URL: jdbc:postgresql://postgres:5432/scenechain
+      DATABASE_USER: scenechain
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:-scenechain_dev}
+      REDIS_HOST: redis
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      SCENECHAIN_PEPPER: ${SCENECHAIN_PEPPER:-development-pepper-change-me}
+      SCENECHAIN_METADATA_KEY: ${SCENECHAIN_METADATA_KEY:-development-metadata-key-change-me}
+      SCENECHAIN_LOOKUP_KEY: ${SCENECHAIN_LOOKUP_KEY:-development-lookup-key-change-me}
+      SCENECHAIN_SYNTHETIC_KEY: ${SCENECHAIN_SYNTHETIC_KEY:-development-synthetic-key-change-me}
+      SCENECHAIN_PACK_MANIFEST: /scene-pack/manifest.json
+      SCENECHAIN_PACK_SHA256: 99bc78510a377e6b7712cd120a76df844a9cb311616f682aa6046047e5bdfb58
+      SCENECHAIN_PROTOCOL_SHA256: ${SCENECHAIN_PROTOCOL_SHA256:-}
+      SCENECHAIN_RECRUITMENT_ENABLED: ${SCENECHAIN_RECRUITMENT_ENABLED:-false}
+      RESEARCH_ADMIN_USER: ${RESEARCH_ADMIN_USER:-}
+      RESEARCH_ADMIN_PASSWORD: ${RESEARCH_ADMIN_PASSWORD:-}
+      RESEARCH_PSEUDONYM_KEY: ${RESEARCH_PSEUDONYM_KEY:-}
+      RESEARCH_COLLECTION_CLOSED_AT: ${RESEARCH_COLLECTION_CLOSED_AT:-}
+      RESEARCH_FINAL_PUBLICATION_AT: ${RESEARCH_FINAL_PUBLICATION_AT:-}
+    volumes:
+      - ./scene-pack/v1:/scene-pack:ro
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    networks: [internal]
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "${SCENECHAIN_PORT:-8088}:80"
+    depends_on: [backend]
+    volumes:
+      - ./scene-pack/v1/delivery:/usr/share/nginx/html/formal-scenes:ro
+      - ./scene-pack/v1/thumbnails:/usr/share/nginx/html/formal-thumbnails:ro
+    networks: [internal]
+
+networks:
+  internal:
+
+volumes:
+  scenechain-postgres:
