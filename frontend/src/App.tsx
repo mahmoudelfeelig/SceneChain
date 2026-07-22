@@ -1,0 +1,383 @@
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { Eye, EyeOff, KeyRound, LogOut, ScanLine, ShieldCheck } from 'lucide-react'
+import { api } from './api/client'
+import { ActionPad } from './components/ActionPad'
+import { SceneBoard } from './components/SceneBoard'
+import type { AttemptResponse, EnrollmentResponse, Mode, Stage } from './types'
+
+type View = 'home' | 'practice' | 'consent' | 'privacy' | 'enroll' | 'study' | 'login' | 'password' | 'workspace'
+type StudyState = { condition: 'password' | 'direct' | 'shielded' | 'complete'; phase: 'practice' | 'measured' | 'workload' | 'retention' | 'complete'; period: number; trialNumber: number; practiceSuccesses: number; retentionPeriod: number; retentionReady: boolean; retentionDueAt?: string; complete: boolean }
+
+export function App() {
+  const [view, setView] = useState<View>('home')
+  const [handle, setHandle] = useState('')
+  const [mode, setMode] = useState<Mode>('direct')
+  const [error, setError] = useState('')
+  const [me, setMe] = useState<string | null>(null)
+  const [pack, setPack] = useState<{ mode: string; sceneCount: number; recruitmentEnabled: boolean } | null>(null)
+  const [privacyReturn, setPrivacyReturn] = useState<View>('home')
+
+  useEffect(() => { api.get<{ handle: string; studyRequired: boolean }>('/api/me').then(r => {
+    setMe(r.handle); setHandle(r.handle)
+    setView(r.studyRequired ? 'study' : 'workspace')
+  }).catch(() => undefined) }, [])
+  useEffect(() => { api.get<{ mode: string; sceneCount: number; recruitmentEnabled: boolean }>('/api/pack/status').then(setPack).catch(() => undefined) }, [])
+
+  const go = (next: View) => { setError(''); setView(next) }
+  if (view === 'practice') return <Practice onDone={() => go('home')} />
+  if (view === 'consent') return <Consent onAccept={() => go('enroll')} onCancel={() => go('home')} onPrivacy={() => { setPrivacyReturn('consent'); go('privacy') }} />
+  if (view === 'privacy') return <PrivacyNotice onBack={() => go(privacyReturn)} />
+  if (view === 'enroll') return <Enrollment onDone={newHandle => { setHandle(newHandle); go('study') }} onCancel={() => go('home')} />
+  if (view === 'study') return <StudyFlow handle={handle} onExit={() => go('home')} />
+  if (view === 'login') return <GraphicalLogin handle={handle} setHandle={setHandle} mode={mode} setMode={setMode}
+    onDone={() => { setMe(handle); go('workspace') }} onPassword={() => go('password')} onCancel={() => go('home')} />
+  if (view === 'password') return <PasswordLogin handle={handle} setHandle={setHandle}
+    onDone={() => { setMe(handle); go('workspace') }} onBack={() => go('login')} />
+  if (view === 'workspace') return <Workspace handle={me ?? handle} onLogout={async () => { await api.delete('/api/session'); setMe(null); go('home') }} onDeleted={() => { setMe(null); setHandle(''); go('home') }} />
+
+  return <main className="landing">
+    <header className="brand"><span className="brand-mark"><ScanLine size={20} /></span>SceneChain <small>research prototype</small></header>
+    <section className="hero">
+      <div className="experiment-warning" role="note"><strong>Research experiment only.</strong> This authenticator protects no valuable account, service, money, or personal files. Never reuse a real password here.</div>
+      <div className="eyebrow">SceneChain protocol · {pack?.mode === 'formal' ? `approved ${pack.sceneCount}-scene pack` : 'development scene pack'}</div>
+      <h1>A visual passphrase built as a chain of places and actions.</h1>
+      <p>Five full-scene cues. One remembered location and direction per scene. Direct and observation-shielded study conditions, evaluated only after the complete chain.</p>
+      <div className="hero-actions">
+        <button className="primary" disabled={!pack?.recruitmentEnabled} onClick={() => go('consent')}><KeyRound size={18} />{pack?.recruitmentEnabled ? 'Create a study credential' : 'Recruitment not yet open'}</button>
+        <button className="secondary" onClick={() => go('login')}><ShieldCheck size={18} />Authenticate</button>
+        <button className="secondary" onClick={() => go('practice')}><ScanLine size={18} />Try a practice chain</button>
+      </div>
+      {error && <p className="error" role="alert">{error}</p>}
+    </section>
+    <section className="principles" aria-label="Protocol principles">
+      <article><strong>Five-stage verification</strong><span>No stage reveals whether it was correct.</span></article>
+      <article><strong>Exact canonical cells</strong><span>Stable 24 × 16 coordinates without fuzzy acceptance.</span></article>
+      <article><strong>Honest security scope</strong><span>A knowledge factor, not phishing-resistant MFA.</span></article>
+    </section>
+    <footer><span>{pack?.mode === 'formal' ? 'Approved CC0 research scene pack loaded.' : 'Development scenes are not the formal CC0 research pack.'}</span><button className="text-button" onClick={() => { setPrivacyReturn('home'); go('privacy') }}>Privacy and participant information</button></footer>
+  </main>
+}
+
+function Consent({ onAccept, onCancel, onPrivacy }: { onAccept: () => void; onCancel: () => void; onPrivacy: () => void }) {
+  const [checks, setChecks] = useState([false, false, false, false, false])
+  const [assetAnswer, setAssetAnswer] = useState('')
+  const [withdrawalAnswer, setWithdrawalAnswer] = useState('')
+  const labels = [
+    'I have read and understood the participant information and privacy notice.',
+    'I understand this is a research prototype and protects nothing valuable.',
+    'I am at least 18 years old and choose to participate voluntarily.',
+    'I understand interaction timing and success/failure outcomes will be recorded under a pseudonym.',
+    'I know I may stop before submission and can request deletion using my study handle.',
+  ]
+  return <Shell title="Participant consent" onCancel={onCancel}><div className="completion-panel consent-panel">
+    <h2>Before you participate</h2><p>Read the participant information and privacy notice before creating a study credential. Participation is optional.</p>
+    {labels.map((label, index) => <label className="check-row" key={label}><input type="checkbox" checked={checks[index]}
+      onChange={event => { const next = [...checks]; next[index] = event.target.checked; setChecks(next) }} />{label}</label>)}
+    <fieldset><legend>Understanding check: what should this account protect?</legend>
+      <label className="check-row"><input type="radio" name="asset-check" value="nothing" checked={assetAnswer === 'nothing'} onChange={event => setAssetAnswer(event.target.value)} />Nothing valuable; it is study-only.</label>
+      <label className="check-row"><input type="radio" name="asset-check" value="real" checked={assetAnswer === 'real'} onChange={event => setAssetAnswer(event.target.value)} />My real files or accounts.</label>
+    </fieldset>
+    <fieldset><legend>Understanding check: when may you stop participating?</legend>
+      <label className="check-row"><input type="radio" name="withdrawal-check" value="anytime" checked={withdrawalAnswer === 'anytime'} onChange={event => setWithdrawalAnswer(event.target.value)} />At any time, without penalty.</label>
+      <label className="check-row"><input type="radio" name="withdrawal-check" value="never" checked={withdrawalAnswer === 'never'} onChange={event => setWithdrawalAnswer(event.target.value)} />Only after every trial is complete.</label>
+    </fieldset>
+    <button className="text-button" onClick={onPrivacy}>Read privacy and participant information</button>
+    <button className="primary" disabled={!checks.every(Boolean) || assetAnswer !== 'nothing' || withdrawalAnswer !== 'anytime'} onClick={onAccept}>I consent and want to continue</button>
+  </div></Shell>
+}
+
+function PrivacyNotice({ onBack }: { onBack: () => void }) {
+  return <Shell title="Privacy and participant information" onCancel={onBack}><article className="legal-panel">
+    <h1>SceneChain research privacy notice</h1>
+    <p><strong>This is an experimental authenticator protecting no valuable account.</strong> Do not enter a password used anywhere else.</p>
+    <h2>What is collected</h2><p>A random study handle, assigned scene identifiers, protected credential verifiers, authentication condition, success or failure, total completion time, per-stage times, retry count, and coarse aggregate cell/action counts.</p>
+    <h2>What is not collected</h2><p>No name, email address, raw click coordinates, typed recovery password, graphical secret, recording, advertising identifier, or third-party analytics data is included in the research export.</p>
+    <h2>Purpose and access</h2><p>Data is used only to compare ordinary passwords with direct and shielded SceneChain login. Raw events are available only through an authenticated administrative export. Published results must use aggregated groups with minimum-count disclosure controls.</p>
+    <h2>Retention and deletion</h2><p>Linked data is deleted at the earlier of 24 months after collection closes or six months after final publication. While linkage remains, an authenticated participant can permanently delete the account and linked event rows after password reauthentication. Irreversibly anonymised published aggregates cannot be reversed.</p>
+    <h2>Voluntary participation</h2><p>You may stop at any time without penalty. Do not participate until the responsible ethics committee and data-protection contact have approved the final study.</p>
+  </article></Shell>
+}
+
+const PRACTICE_SCENES = [
+  { id: 9001, version: 0, family: 'urban', title: 'Practice courtyard', asset: '/scenes/urban.svg', license: 'DEVELOPMENT-ONLY' },
+  { id: 9002, version: 0, family: 'workshop', title: 'Practice workshop', asset: '/scenes/workshop.svg', license: 'DEVELOPMENT-ONLY' },
+  { id: 9003, version: 0, family: 'library', title: 'Practice reading room', asset: '/scenes/library.svg', license: 'DEVELOPMENT-ONLY' },
+  { id: 9004, version: 0, family: 'garden', title: 'Practice glasshouse', asset: '/scenes/garden.svg', license: 'DEVELOPMENT-ONLY' },
+  { id: 9005, version: 0, family: 'market', title: 'Practice market', asset: '/scenes/market.svg', license: 'DEVELOPMENT-ONLY' },
+]
+
+function Practice({ onDone }: { onDone: () => void }) {
+  const [index, setIndex] = useState(0)
+  const [cell, setCell] = useState<number>()
+  const [action, setAction] = useState<number>()
+  const [complete, setComplete] = useState(false)
+  if (complete) return <Shell title="Practice complete" onCancel={onDone}><div className="completion-panel"><div className="success-icon"><ShieldCheck /></div><h2>You completed a five-scene practice chain</h2><p>No practice input was sent to the server or stored. Enrollment will assign different scene IDs and ask you to repeat the complete chain twice.</p><button className="primary" onClick={onDone}>Return home</button></div></Shell>
+  const next = async () => {
+    if (cell === undefined || action === undefined) return
+    if (index === 4) { setComplete(true); return }
+    setIndex(index + 1); setCell(undefined); setAction(undefined)
+  }
+  const scene = PRACTICE_SCENES[index]
+  return <Shell title="SceneChain practice" onCancel={onDone} progress={`${index + 1} / 5`}><div className="stage-copy"><span>Not recorded</span><h2>Choose any memorable location and direction</h2><p>This teaches the interaction only. Nothing selected here becomes your credential.</p></div><SceneBoard scene={scene} mode="direct" selectedCell={cell} onCell={setCell}/><ActionPad selected={action} onSelect={setAction}/><div className="stage-footer"><span>Practice has no correctness test.</span><button className="primary" disabled={cell === undefined || action === undefined} onClick={next}>{index === 4 ? 'Finish practice' : 'Next practice scene'}</button></div></Shell>
+}
+
+function Enrollment({ onDone, onCancel }: { onDone: (handle: string) => void; onCancel: () => void }) {
+  const startedAt = useRef(performance.now())
+  const stageStartedAt = useRef(performance.now())
+  const [data, setData] = useState<EnrollmentResponse | null>(null)
+  const [index, setIndex] = useState(0)
+  const [cell, setCell] = useState<number>()
+  const [action, setAction] = useState<number>()
+  const [stages, setStages] = useState<Stage[]>([])
+  const [confirmPass, setConfirmPass] = useState(0)
+  const [confirmation, setConfirmation] = useState<Stage[]>([])
+  const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [stageMs, setStageMs] = useState<number[]>([])
+
+  useEffect(() => { api.post<EnrollmentResponse>('/api/enrollments/start', {
+    informed: true, adult: true, voluntary: true, researchMetrics: true, deletionRights: true, comprehensionPassed: true,
+  }).then(setData).catch(e => setError(e.message)) }, [])
+  if (!data) return <Shell title="Preparing private enrollment" onCancel={onCancel}><p>{error || 'Assigning five cue scenes…'}</p></Shell>
+
+  const scene = data.scenes[index]
+  const confirming = confirmPass > 0
+  const activeScene = scene
+
+  const next = async () => {
+    if (cell === undefined || action === undefined) return
+    const stage = { sceneId: scene.id, cellId: cell, actionId: action }
+    const collection = confirming ? [...confirmation, stage] : [...stages, stage]
+    if (!confirming) setStageMs(previous => [...previous, Math.round(performance.now() - stageStartedAt.current)])
+    stageStartedAt.current = performance.now()
+    setCell(undefined); setAction(undefined)
+    if (index < 4) {
+      if (confirming) setConfirmation(collection)
+      else setStages(collection)
+      setIndex(index + 1)
+      return
+    }
+    setIndex(0); setBusy(true); setError('')
+    try {
+      if (confirmPass < 2) {
+        await api.post('/api/enrollments/confirmation', { stages: collection }, data.csrfToken)
+        if (!confirming) setStages(collection)
+        setConfirmation([])
+        setConfirmPass(confirmPass + 1)
+      } else {
+        setConfirmation(collection)
+        setConfirmPass(3)
+      }
+    } catch (e) {
+      setError((e as Error).message)
+      setConfirmation([])
+    } finally { setBusy(false) }
+  }
+
+  const finish = async () => {
+    if (password.trim().length < 15) { setError('The alternative password must contain at least 15 characters.'); return }
+    setBusy(true); setError('')
+    try {
+      const result = await api.post<{ handle: string }>('/api/enrollments/complete', {
+        stages: confirmation, password, totalMs: Math.round(performance.now() - startedAt.current), stageMs,
+      }, data.csrfToken)
+      onDone(result.handle)
+    } catch (e) { setError((e as Error).message) } finally { setBusy(false) }
+  }
+
+  if (confirmPass === 3) return <Shell title="Save your recovery sign-in" onCancel={onCancel}>
+    <div className="completion-panel">
+      <div className="success-icon"><ShieldCheck /></div>
+      <h2>Your visual chain matched twice</h2>
+      <p>Your assigned study handle is <code>{data.handle}</code>. Store it somewhere private.</p>
+      <label>Alternative password
+        <span className="password-field"><input type={showPassword ? 'text' : 'password'} value={password}
+          autoComplete="new-password" onChange={e => setPassword(e.target.value)} minLength={15} maxLength={128} />
+          <button type="button" aria-label={showPassword ? 'Hide password' : 'Show password'} onClick={() => setShowPassword(!showPassword)}>
+            {showPassword ? <EyeOff /> : <Eye />}
+          </button></span>
+      </label>
+      <small>At least 15 characters. Do not reuse a real password from another service.</small>
+      {error && <p className="error" role="alert">{error}</p>}
+      <button className="primary" disabled={busy} onClick={finish}>{busy ? 'Protecting credential…' : 'Complete enrollment'}</button>
+    </div>
+  </Shell>
+
+  return <Shell title={confirming ? `Confirmation ${confirmPass} of 2` : 'Create your visual chain'} onCancel={onCancel}
+    progress={`${index + 1} / 5`}>
+    <div className="stage-copy">
+      <span>{scene.family}</span><h2>{confirming ? 'Repeat your remembered location' : 'Choose any memorable location'}</h2>
+      <p>{confirming ? 'Select the same cell and direction.' : 'Every one of the 384 cells is available. No locations are suggested or highlighted.'}</p>
+    </div>
+    <SceneBoard scene={activeScene} mode={confirming ? 'direct' : 'enrollment'} selectedCell={cell} onCell={setCell} />
+    <ActionPad selected={action} onSelect={setAction} />
+    {error && <p className="error" role="alert">{error}</p>}
+    <div className="stage-footer"><span>No correctness is checked until the complete chain.</span>
+      <button className="primary" disabled={busy || cell === undefined || action === undefined} onClick={next}>Confirm stage</button></div>
+  </Shell>
+}
+
+function GraphicalLogin({ handle, setHandle, mode, setMode, onDone, onPassword, onCancel, locked = false }: {
+  handle: string; setHandle: (v: string) => void; mode: Mode; setMode: (m: Mode) => void
+  onDone: () => void; onPassword: () => void; onCancel: () => void; locked?: boolean
+}) {
+  const startedAt = useRef(performance.now())
+  const stageStartedAt = useRef(performance.now())
+  const [attempt, setAttempt] = useState<AttemptResponse | null>(null)
+  const [index, setIndex] = useState(0)
+  const [selectedScene, setSelectedScene] = useState<number>()
+  const [cell, setCell] = useState<number>()
+  const [marker, setMarker] = useState<number>()
+  const [action, setAction] = useState<number>()
+  const [stages, setStages] = useState<Stage[]>([])
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [stageMs, setStageMs] = useState<number[]>([])
+
+  const start = async () => {
+    setBusy(true); setError('')
+    try { setAttempt(await api.post<AttemptResponse>('/api/auth/attempts', { handle: handle.toUpperCase(), mode })); setIndex(0); setStages([]); setStageMs([]); setSelectedScene(undefined); startedAt.current = performance.now(); stageStartedAt.current = performance.now() }
+    catch (e) { setError((e as Error).message) } finally { setBusy(false) }
+  }
+
+  const next = async () => {
+    if (action === undefined || (mode === 'direct' && cell === undefined) || (mode === 'shielded' && marker === undefined)) return
+    if (selectedScene === undefined) return
+    const stage: Stage = { sceneId: selectedScene, actionId: action,
+      ...(mode === 'direct' ? { cellId: cell } : { markerId: marker }) }
+    const all = [...stages, stage]
+    const allStageMs = [...stageMs, Math.round(performance.now() - stageStartedAt.current)]
+    setStageMs(allStageMs); stageStartedAt.current = performance.now()
+    setCell(undefined); setMarker(undefined); setAction(undefined); setSelectedScene(undefined)
+    if (index < 4) { setStages(all); setIndex(index + 1); return }
+    setBusy(true)
+    try { await api.post('/api/auth/attempts/complete', {
+      stages: all, totalMs: Math.round(performance.now() - startedAt.current), stageMs: allStageMs,
+    }, attempt!.csrfToken); onDone() }
+    catch (e) { setError((e as Error).message); setAttempt(null); setStages([]); setSelectedScene(undefined); if (locked) onDone() } finally { setBusy(false) }
+  }
+
+  if (!attempt) return <Shell title="Authenticate with SceneChain" onCancel={onCancel}>
+    <div className="login-panel">
+      <label>Study handle<input value={handle} autoCapitalize="characters" autoComplete="username"
+        placeholder="SC-ABCD-2345" onChange={e => setHandle(e.target.value.toUpperCase())} /></label>
+      {!locked && <fieldset className="mode-choice"><legend>Presentation</legend>
+        <button role="radio" aria-checked={mode === 'direct'} className={mode === 'direct' ? 'selected' : ''} onClick={() => setMode('direct')} type="button">
+          <Eye size={20} /><strong>Direct</strong><span>Fast; visible when observed.</span></button>
+        <button role="radio" aria-checked={mode === 'shielded'} className={mode === 'shielded' ? 'selected' : ''} onClick={() => setMode('shielded')} type="button">
+          <ScanLine size={20} /><strong>Shielded</strong><span>Respond without touching the secret cell.</span></button>
+      </fieldset>}
+      {error && <p className="error" role="alert">{error}</p>}
+      <button className="primary" disabled={!/^SC-[A-Z2-9]{4}-[A-Z2-9]{4}$/.test(handle) || busy} onClick={start}>Begin five-scene attempt</button>
+      {!locked && <button className="text-button" onClick={onPassword}>Use password instead</button>}
+    </div>
+  </Shell>
+
+  const scene = attempt.scenes.find(item => item.id === selectedScene)
+  if (!scene) return <Shell title="Recognize your scene" onCancel={onCancel} progress={`${index + 1} / 5`}>
+    <div className="stage-copy"><span>Private recognition</span><h2>Choose scene {index + 1} from your chain</h2>
+      <p>The pool is shuffled on every attempt. Select your remembered scenes in enrollment order; no scene is identified as belonging to this account.</p></div>
+    <div className="scene-gallery">{attempt.scenes.filter(item => !stages.some(stage => stage.sceneId === item.id)).map(item => <button type="button" key={item.id}
+      onClick={() => setSelectedScene(item.id)} aria-label={`Choose ${item.title}`}>
+      <img src={item.thumbnail ?? item.asset} alt="" loading="lazy" decoding="async" /><span>{item.title}</span></button>)}</div>
+  </Shell>
+  return <Shell title={mode === 'shielded' ? 'Shielded SceneChain' : 'Direct SceneChain'} onCancel={onCancel} progress={`${index + 1} / 5`}>
+    <div className="stage-copy"><span>{scene.family}</span><h2>{mode === 'direct' ? 'Select your remembered cell' : 'Find your location, then read its marker'}</h2>
+      <p>{mode === 'direct' ? 'Your selected cell is input feedback, not a correctness signal.' : 'Do not touch the image. The action remains visible in protocol version 1.'}</p></div>
+    <button className="text-button stage-back" type="button" onClick={() => { setSelectedScene(undefined); setCell(undefined); setMarker(undefined); setAction(undefined) }}>Choose another scene</button>
+    <SceneBoard scene={scene} mode={mode} selectedCell={cell} selectedMarker={marker} onCell={setCell} onMarker={setMarker} />
+    <ActionPad selected={action} onSelect={setAction} />
+    <div className="stage-footer"><span>All five stages are evaluated together.</span><button className="primary"
+      disabled={busy || action === undefined || (mode === 'direct' ? cell === undefined : marker === undefined)} onClick={next}>
+      {index === 4 ? 'Verify complete chain' : 'Confirm stage'}</button></div>
+  </Shell>
+}
+
+function PasswordLogin({ handle, setHandle, onDone, onBack, locked = false }: { handle: string; setHandle: (v: string) => void; onDone: () => void; onBack: () => void; locked?: boolean }) {
+  const [password, setPassword] = useState('')
+  const [show, setShow] = useState(false)
+  const [error, setError] = useState('')
+  const [attempt, setAttempt] = useState<{ csrfToken: string } | null>(null)
+  const start = async () => { try { setAttempt(await api.post('/api/auth/password/attempts', { handle })) } catch (e) { setError((e as Error).message) } }
+  const submit = async () => { if (!attempt) return; try { await api.post('/api/auth/password', { password }, attempt.csrfToken); onDone() } catch (e) { setError((e as Error).message); setAttempt(null); setPassword(''); if (locked) onDone() } }
+  return <Shell title="Use your alternative password" onCancel={onBack}><form className="login-panel" onSubmit={event => { event.preventDefault(); void submit() }}>
+    <label>Study handle<input autoComplete="username" value={handle} readOnly={locked} onChange={e => setHandle(e.target.value.toUpperCase())} /></label>
+    {!attempt && <><p>Timing starts only after you press the button below.</p><button className="primary" type="button" disabled={!/^SC-[A-Z2-9]{4}-[A-Z2-9]{4}$/.test(handle)} onClick={start}>Begin password trial</button></>}
+    {attempt && <><label>Password<span className="password-field"><input autoFocus type={show ? 'text' : 'password'} autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} />
+      <button type="button" onClick={() => setShow(!show)} aria-label={show ? 'Hide password' : 'Show password'}>{show ? <EyeOff /> : <Eye />}</button></span></label>
+    {error && <p className="error" role="alert">{error}</p>}
+    <button className="primary" type="submit">Sign in</button></>}{!locked && <button className="text-button" type="button" onClick={onBack}>Use SceneChain instead</button>}
+  </form></Shell>
+}
+
+function StudyFlow({ handle, onExit }: { handle: string; onExit: () => void }) {
+  const [state, setState] = useState<StudyState | null>(null)
+  const [inputMethod, setInputMethod] = useState('mouse')
+  const [started, setStarted] = useState(false)
+  const [error, setError] = useState('')
+  const [supported, setSupported] = useState(window.innerWidth >= 1024 && window.innerHeight >= 600)
+  useEffect(() => {
+    const check = () => setSupported(window.innerWidth >= 1024 && window.innerHeight >= 600)
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
+  useEffect(() => { api.get<StudyState>('/api/study/state').then(value => { setState(value); setStarted(true) }).catch(() => undefined) }, [])
+  const refresh = () => api.get<StudyState>('/api/study/state').then(setState).catch(e => setError(e.message))
+  const browserFamily = /Firefox/i.test(navigator.userAgent) ? 'firefox' : /Safari/i.test(navigator.userAgent) && !/Chrome|Chromium/i.test(navigator.userAgent) ? 'safari' : /Chrome|Chromium/i.test(navigator.userAgent) ? 'chromium' : 'other'
+  const begin = async () => {
+    if (window.innerWidth < 1024 || window.innerHeight < 600) { setError('The confirmatory study requires a desktop or laptop viewport of at least 1024 × 600 CSS pixels.'); return }
+    try {
+      setState(await api.post<StudyState>('/api/study/start', { viewportWidth: window.innerWidth, viewportHeight: window.innerHeight, inputMethod, browserFamily }))
+      setStarted(true)
+    } catch (e) { setError((e as Error).message) }
+  }
+  if (!started) return <Shell title="Start assigned study session" onCancel={onExit}><form className="completion-panel" onSubmit={event => { event.preventDefault(); void begin() }}>
+    <h2>Desktop or laptop study</h2><p>Your three authentication conditions are server-assigned and counterbalanced. Keep this browser at least 1024 pixels wide throughout each trial.</p>
+    <label>Primary input method<select value={inputMethod} onChange={event => setInputMethod(event.target.value)}><option value="mouse">Mouse</option><option value="trackpad">Trackpad</option><option value="keyboard">Keyboard</option><option value="touch">Touchscreen laptop</option><option value="other">Other approved accommodation</option></select></label>
+    {error && <p className="error" role="alert">{error}</p>}<button className="primary" type="submit">Begin assigned sequence</button>
+  </form></Shell>
+  if (!supported) return <Shell title="Study task paused" onCancel={onExit}><div className="completion-panel"><h2>Restore the supported viewport</h2><p>Resize this desktop or laptop browser to at least 1024 × 600 CSS pixels. The task is paused so its geometry and timing are not silently changed.</p></div></Shell>
+  if (!state) return <Shell title="Loading study state" onCancel={onExit}><p>{error || 'Loading…'}</p></Shell>
+  if (state.complete) return <Shell title="Study sequence complete" onCancel={onExit}><div className="completion-panel"><div className="success-icon"><ShieldCheck /></div><h2>All assigned trials are complete</h2><p>Your study-only account protects no valuable data. Follow the researcher’s debriefing and deletion instructions.</p><button className="primary" onClick={onExit}>Finish</button></div></Shell>
+  if (state.phase === 'retention' && !state.retentionReady) return <Shell title="Delayed retention" onCancel={onExit}><div className="completion-panel"><h2>Your follow-up is not due yet</h2><p>Return at the scheduled time shown in your participant instructions. The server will unlock the trial after {state.retentionDueAt ? new Date(state.retentionDueAt).toLocaleString() : 'the declared interval'}.</p></div></Shell>
+  if (state.phase === 'workload') return <Workload period={state.period} onDone={next => setState(next)} onExit={onExit} />
+  const label = state.phase === 'practice' ? `Practice: ${state.practiceSuccesses} of 2 successful trials` : state.phase === 'measured' ? `Measured trial ${state.trialNumber + 1} of 3` : `Delayed trial ${state.retentionPeriod + 1} of 3`
+  if (state.condition === 'password') return <><div className="study-banner" role="status">{label} · Assigned condition: password</div><PasswordLogin handle={handle} setHandle={() => undefined} locked onDone={refresh} onBack={onExit} /></>
+  const graphicalMode: Mode = state.condition === 'shielded' ? 'shielded' : 'direct'
+  return <><div className="study-banner" role="status">{label} · Assigned condition: {graphicalMode}</div><GraphicalLogin handle={handle} setHandle={() => undefined} mode={graphicalMode} setMode={() => undefined} locked onDone={refresh} onPassword={() => undefined} onCancel={onExit} /></>
+}
+
+function Workload({ period, onDone, onExit }: { period: number; onDone: (state: StudyState) => void; onExit: () => void }) {
+  const dimensions = ['mental', 'physical', 'temporal', 'performance', 'effort', 'frustration'] as const
+  const [values, setValues] = useState<Record<(typeof dimensions)[number], number>>({ mental: 10, physical: 10, temporal: 10, performance: 10, effort: 10, frustration: 10 })
+  const [error, setError] = useState('')
+  const submit = async () => { try { onDone(await api.post<StudyState>('/api/study/workload', values)) } catch (e) { setError((e as Error).message) } }
+  return <Shell title={`Workload after condition ${period + 1}`} onCancel={onExit}><form className="legal-panel workload" onSubmit={event => { event.preventDefault(); void submit() }}><h1>Rate the completed condition</h1><p>Use 0 for very low and 20 for very high. For performance, 0 means perfect and 20 means failure.</p>{dimensions.map(name => <label key={name}>{name[0].toUpperCase() + name.slice(1)}: <output>{values[name]}</output><input type="range" min="0" max="20" value={values[name]} onChange={event => setValues(previous => ({ ...previous, [name]: Number(event.target.value) }))} /></label>)}{error && <p className="error" role="alert">{error}</p>}<button className="primary" type="submit">Save and continue</button></form></Shell>
+}
+
+function Workspace({ handle, onLogout, onDeleted }: { handle: string; onLogout: () => void; onDeleted: () => void }) {
+  const [showDelete, setShowDelete] = useState(false)
+  const [password, setPassword] = useState('')
+  const [confirmed, setConfirmed] = useState(false)
+  const [error, setError] = useState('')
+  const remove = async () => { try { await api.delete('/api/participant', { password, understandDeletionIsPermanent: confirmed }); onDeleted() } catch (e) { setError((e as Error).message) } }
+  return <main className="workspace"><header className="topbar"><div className="brand"><span className="brand-mark"><ScanLine size={20} /></span>SceneChain</div>
+    <button className="secondary" onClick={onLogout}><LogOut size={16} />Sign out</button></header>
+    <section className="workspace-content"><div className="eyebrow">Authenticated research sandbox</div><h1>Complete chain accepted.</h1>
+      <p>Signed in as <code>{handle}</code>. This prototype protects no valuable data and is not a production authenticator.</p>
+      <div className="workspace-grid"><article><ShieldCheck /><h2>Final-only verification</h2><p>No individual stage disclosed correctness.</p></article>
+        <article><KeyRound /><h2>Separate alternatives</h2><p>Password recovery remains independent of the graphical credential.</p></article></div>
+      <button className="text-button danger-link" onClick={() => setShowDelete(!showDelete)}>Delete my participant account and linked research data</button>
+      {showDelete && <form className="delete-panel" onSubmit={event => { event.preventDefault(); void remove() }}><h2>Permanent deletion</h2><p>This revokes the study account and deletes its still-linked event rows. It cannot reverse statistics that were already irreversibly anonymised.</p><label>Alternative password<input type="password" autoComplete="current-password" value={password} onChange={event => setPassword(event.target.value)} /></label><label className="check-row"><input type="checkbox" checked={confirmed} onChange={event => setConfirmed(event.target.checked)} />I understand this deletion is permanent.</label>{error && <p className="error" role="alert">{error}</p>}<button className="secondary danger" disabled={!confirmed || !password} type="submit">Delete permanently</button></form>}
+    </section></main>
+}
+
+function Shell({ title, progress, onCancel, children }: { title: string; progress?: string; onCancel: () => void; children: ReactNode }) {
+  const heading = useRef<HTMLHeadingElement>(null)
+  useEffect(() => { heading.current?.focus() }, [title])
+  return <main className="app-shell"><header className="topbar"><div className="brand"><span className="brand-mark"><ScanLine size={20} /></span><span className="brand-title">{title}</span></div>
+    <div className="top-actions">{progress && <span className="progress-label">{progress}</span>}<button className="text-button" onClick={onCancel}>Exit</button></div></header>
+    <section className="flow-content"><h1 className="sr-only" ref={heading} tabIndex={-1}>{title}</h1>{children}</section></main>
+}
