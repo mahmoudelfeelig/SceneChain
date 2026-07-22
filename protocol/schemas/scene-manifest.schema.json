@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://scenechain.local/schemas/scene-manifest-v1.json",
+  "title": "SceneChain scene manifest version 1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["sceneId", "version", "family", "canonical", "source", "eligibleCells", "recommendedCells", "enrollmentWindows"],
+  "properties": {
+    "sceneId": { "type": "integer", "minimum": 1 },
+    "version": { "const": 1 },
+    "family": { "type": "string", "minLength": 1 },
+    "title": { "type": "string", "minLength": 1 },
+    "canonical": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "width", "height", "sha256"],
+      "properties": {
+        "path": { "type": "string" },
+        "width": { "const": 1920 },
+        "height": { "const": 1280 },
+        "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["institution", "url", "license", "licenseEvidence", "downloadedAt", "originalSha256"],
+      "properties": {
+        "institution": { "type": "string", "minLength": 1 },
+        "url": { "type": "string", "format": "uri" },
+        "license": { "const": "CC0-1.0" },
+        "licenseEvidence": { "type": "string", "minLength": 1 },
+        "downloadedAt": { "type": "string", "format": "date-time" },
+        "originalSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      }
+    },
+    "eligibleCells": {
+      "type": "array", "minItems": 384, "maxItems": 384, "uniqueItems": true,
+      "items": { "type": "integer", "minimum": 0, "maximum": 383 }
+    },
+    "recommendedCells": {
+      "type": "array", "minItems": 192, "maxItems": 240, "uniqueItems": true,
+      "items": { "type": "integer", "minimum": 0, "maximum": 383 }
+    },
+    "enrollmentWindows": {
+      "type": "array", "minItems": 16, "maxItems": 16,
+      "items": {
+        "type": "object", "additionalProperties": false, "required": ["column", "row"],
+        "properties": {
+          "column": { "enum": [0, 6, 12, 18] },
+          "row": { "enum": [0, 4, 8, 12] }
+        }
+      }
+    }
+  }
+}
