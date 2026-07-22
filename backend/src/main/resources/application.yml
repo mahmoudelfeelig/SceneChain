@@ -1,0 +1,48 @@
+server:
+  port: 8080
+  forward-headers-strategy: framework
+  servlet:
+    session:
+      cookie:
+        http-only: true
+        secure: ${COOKIE_SECURE:false}
+        same-site: strict
+spring:
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/scenechain}
+    username: ${DATABASE_USER:scenechain}
+    password: ${DATABASE_PASSWORD:scenechain_dev}
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+  flyway:
+    enabled: true
+    user: ${MIGRATION_DATABASE_USER:${DATABASE_USER:scenechain}}
+    password: ${MIGRATION_DATABASE_PASSWORD:${DATABASE_PASSWORD:scenechain_dev}}
+  jackson:
+    default-property-inclusion: non_null
+scenechain:
+  cookie-secure: ${COOKIE_SECURE:false}
+  pack-manifest: ${SCENECHAIN_PACK_MANIFEST:}
+  pack-sha256: ${SCENECHAIN_PACK_SHA256:99bc78510a377e6b7712cd120a76df844a9cb311616f682aa6046047e5bdfb58}
+  protocol-sha256: ${SCENECHAIN_PROTOCOL_SHA256:}
+  recruitment-enabled: ${SCENECHAIN_RECRUITMENT_ENABLED:false}
+  attempt-ttl-seconds: 300
+  session-ttl-seconds: 3600
+  research:
+    admin-user: ${RESEARCH_ADMIN_USER:}
+    admin-password: ${RESEARCH_ADMIN_PASSWORD:}
+    pseudonym-key: ${RESEARCH_PSEUDONYM_KEY:}
+    collection-closed-at: ${RESEARCH_COLLECTION_CLOSED_AT:}
+    final-publication-at: ${RESEARCH_FINAL_PUBLICATION_AT:}
+  keys:
+    pepper: ${SCENECHAIN_PEPPER:development-pepper-change-me}
+    metadata: ${SCENECHAIN_METADATA_KEY:development-metadata-key-change-me}
+    lookup: ${SCENECHAIN_LOOKUP_KEY:development-lookup-key-change-me}
+    synthetic: ${SCENECHAIN_SYNTHETIC_KEY:development-synthetic-key-change-me}
+logging:
+  level:
+    root: INFO
+    org.springframework.web: WARN
