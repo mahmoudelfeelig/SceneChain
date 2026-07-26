@@ -1,7 +1,7 @@
 # Final UI and integration review
 
-The screenshots in this directory were captured by `scripts/ui_smoke.mjs` against
-the live Docker Compose stack on 2026-07-22. The test covered 1440×1000,
+The screenshots in this directory were refreshed by `scripts/ui_smoke.mjs`
+against the live Docker Compose stack on 2026-07-26. The test covered 1440×1000,
 1024×768, and 390×844 information-page layouts; verified that recruitment was
 closed; checked horizontal overflow; opened and returned from privacy information;
 confirmed exactly one tabbable grid cell; moved focus with an arrow key; and
@@ -17,6 +17,7 @@ The final pass also established the following repeatable evidence:
 - 13 backend tests passed in the Java 21 Maven container;
 - three frontend shared-vector/coordinate tests, ESLint, TypeScript, and the
   production Vite build passed in the Node 24 container;
+- a clean frontend install reported zero known npm vulnerabilities;
 - Flyway V1 through V5 applied on a clean PostgreSQL 17 database;
 - the frozen 48-scene pack and every canonical, delivery, and thumbnail digest
   passed validation;

@@ -1,13 +1,13 @@
 # Scene-pack selection record
 
-Status: 48-source shortlist selected; originals and formal derivatives are not yet frozen.
+Status: frozen 48-scene CC0 pack.
 
 On 2026-07-11, the first full-resolution crop review replaced a contemporary
 checkpoint photograph because of identifiable people and removed two
 Unsplash-labelled Commons uploads because upstream relicensing provenance was
-not sufficiently strong. All 48 replacement-safe originals and derivatives are
-now staged with individual provenance records, and the structural pack validator
-passes. Crop and eligible-cell approvals remain intentionally separate.
+not sufficiently strong. The replacement-safe originals and their canonical,
+delivery, and thumbnail derivatives were subsequently reviewed, approved,
+hashed, and frozen in `scene-pack/v1/manifest.json`.
 
 ## Selection result
 
@@ -35,31 +35,33 @@ harbor results were deliberately reduced. Historical artwork was used where it
 avoids privacy concerns and provides stronger spatial structure than available
 photographs.
 
-## Required finalization
+## Freeze result
 
-Shortlisting is not pack freeze. Each original still needs to be downloaded and
-hashed, decoded to verify at least 2400 by 1600 pixels, reviewed at full
-resolution, and cropped once to the canonical 1920 by 1280 derivative. The
-license page or API metadata response must be saved beside each original.
+Every source record preserves its source URL, license evidence, dimensions, and
+source digest. Each canonical 1920 by 1280 derivative, delivery image, and
+thumbnail has an independently verified SHA-256 digest in the frozen manifest.
+The full-resolution privacy, text, brand, plate, cultural-property, low-vision,
+and hotspot-risk reviews are recorded in the pack metadata.
 
-After cropping, every scene needs a 24 by 16 cell review. Each of the sixteen
-six-by-four enrollment windows must retain 12 to 15 eligible cells. Face, text,
-brand, plate, privacy, cultural-property, low-vision, and hotspot-risk checks
-remain mandatory. The resulting pack must pass `scripts/validate_scene_pack.py`
-and a separate participant pilot before the manifest can be signed and frozen.
+All 384 canonical cells are selectable during enrollment. Recommended-cell
+metadata remains available only for offline analysis: every scene contains 12
+to 15 recommendations in each fixed six-by-four analysis window, but neither
+the participant interface nor authentication reveals those recommendations.
+The frozen pack passes `scripts/validate_scene_pack.py`.
 
 ## Reproduction
 
-The discovery inputs and review thumbnails are under `protocol/manifests/` and
-`scene-pack/review/`. The shortlist can be rebuilt deterministically with:
+The reviewed discovery inputs are under `protocol/manifests/`. The shortlist can
+be rebuilt deterministically with:
 
 ```bash
 python3 scripts/build_selected_sources.py
 ```
 
 Candidate discovery scripts are retained for provenance and future replacement
-searches. Running them again can change search ordering, so their output must not
-silently replace the reviewed shortlist.
+searches. The local `scene-pack/review/` cache is deliberately ignored. Running
+discovery again can change search ordering, so generated output must never
+silently replace the frozen manifest.
 
 ## Operator review application
 
@@ -68,8 +70,9 @@ silently replace the reviewed shortlist.
 toggles, calculates all sixteen window counts live, and stores crop and cell
 approval separately. Pack approval requires exactly 48 scenes with both reviews.
 
-The Spring backend does not trust that UI alone. At startup it loads a formal
-pack only when the manifest status is `approved`, all scene IDs are unique, all
-48 scenes explicitly use CC0, every family contains six scenes, every eligible
-cell is in range, and every window contains 12 to 15 cells. Any failure selects
-the development pack and exposes that state through `/api/pack/status`.
+The Spring backend does not trust that UI alone. At startup it verifies the
+configured manifest digest, approval status, unique scene IDs, 48 explicit CC0
+records, eight balanced families, every eligible and recommended cell, all
+analysis windows, and the canonical, delivery, and thumbnail asset hashes. A
+configured formal pack fails closed if any validation differs, and the resulting
+state is exposed through `/api/pack/status`.
