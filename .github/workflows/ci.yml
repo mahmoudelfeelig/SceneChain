@@ -68,6 +68,7 @@ jobs:
           severity-cutoff: high
           only-fixed: true
           grype-version: v0.112.0
+          output-format: table
 
   integration:
     runs-on: ubuntu-latest
