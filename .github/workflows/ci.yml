@@ -61,12 +61,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: docker compose build backend frontend
-      - uses: anchore/scan-action@v6
+      - uses: anchore/scan-action@v7.4.0
         with:
           image: scenechain-backend:latest
           fail-build: true
           severity-cutoff: high
           only-fixed: true
+          grype-version: v0.112.0
 
   integration:
     runs-on: ubuntu-latest
