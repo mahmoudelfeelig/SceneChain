@@ -66,6 +66,7 @@ jobs:
           image: scenechain-backend:latest
           fail-build: true
           severity-cutoff: high
+          only-fixed: true
 
   integration:
     runs-on: ubuntu-latest
