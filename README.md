@@ -134,6 +134,15 @@ The software and project documentation are licensed under the
 [GNU Affero General Public License v3.0](LICENSE), using the
 `AGPL-3.0-only` SPDX identifier. Anyone operating a modified version over a
 network must make its corresponding source available as required by the
-license. Scene assets are separately dedicated to the public domain under CC0;
-their per-file source and license evidence remain recorded in the frozen
-scene-pack manifest.
+license.
+
+The SceneChain elephant logo in `frontend/public/assets/brand/` is
+Copyright © 2026 Mahmoud elfeel. All rights are reserved. The logo and the
+SceneChain name are trademark-reserved and are not granted for reuse under the
+AGPL.
+
+Only the 48 research scene images listed in
+`scene-pack/v1/manifest.json` are separately available under CC0-1.0. Their
+per-file source and license evidence remain recorded in that frozen manifest.
+Third-party software notices are recorded in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
