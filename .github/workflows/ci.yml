@@ -15,8 +15,8 @@ jobs:
       run:
         working-directory: backend
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "21"
@@ -29,8 +29,8 @@ jobs:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: "24"
           cache: npm
@@ -44,7 +44,7 @@ jobs:
   repository:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - run: docker compose config --quiet
       - run: python3 -m py_compile scripts/*.py
       - run: sh -n scripts/*.sh
@@ -59,7 +59,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [backend, frontend, repository]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - run: docker compose build backend frontend
       - uses: anchore/scan-action@v7.4.0
         with:
@@ -77,7 +77,7 @@ jobs:
       PROTOCOL_SHA256: 4c8b6fcccad045a4916f72a0116a01da9dfe60b63fde88c0b7b6459c938bd4d6
       MANIFEST_SHA256: 99bc78510a377e6b7712cd120a76df844a9cb311616f682aa6046047e5bdfb58
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - run: docker compose up -d --build
       - run: |
           for attempt in $(seq 1 30); do
