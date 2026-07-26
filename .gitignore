@@ -1,13 +1,37 @@
+# Local configuration and secrets
 .env
+.env.*
+!.env.example
+
+# Build and dependency outputs
 backend/target/
 frontend/node_modules/
 frontend/dist/
+frontend/coverage/
+coverage/
 *.tsbuildinfo
+dependency-reduced-pom.xml
+.scannerwork/
+
+# Python caches
 __pycache__/
 *.pyc
+
+# Local research and browser artifacts
 scene-pack/review/
 playwright-report/
 test-results/
+
+# Editors and operating systems
 .idea/
 .vscode/
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.swp
+*~
+
+# Runtime scratch files
 *.log
+*.pid
+*.tmp
