@@ -46,9 +46,13 @@ jobs:
       - uses: actions/checkout@v4
       - run: docker compose config --quiet
       - run: python3 -m py_compile scripts/*.py
+      - run: sh -n scripts/*.sh
       - run: python3 -m json.tool protocol/schemas/credential.schema.json >/dev/null
       - run: python3 -m json.tool protocol/schemas/scene-manifest.schema.json >/dev/null
       - run: python3 -m json.tool protocol/test-vectors/credential-v1.json >/dev/null
+      - run: python3 scripts/validate_scene_pack.py scene-pack/v1/manifest.json
+      - run: echo "4c8b6fcccad045a4916f72a0116a01da9dfe60b63fde88c0b7b6459c938bd4d6  docs/protocol.md" | sha256sum --check -
+      - run: echo "99bc78510a377e6b7712cd120a76df844a9cb311616f682aa6046047e5bdfb58  scene-pack/v1/manifest.json" | sha256sum --check -
 
   containers:
     runs-on: ubuntu-latest
@@ -58,22 +62,44 @@ jobs:
       - run: docker compose build backend frontend
       - uses: anchore/scan-action@v6
         with:
-          image: graphicalpassword-backend:latest
+          image: scenechain-backend:latest
           fail-build: true
           severity-cutoff: high
 
   integration:
     runs-on: ubuntu-latest
     needs: [backend, frontend, repository]
+    env:
+      PROTOCOL_SHA256: 4c8b6fcccad045a4916f72a0116a01da9dfe60b63fde88c0b7b6459c938bd4d6
+      MANIFEST_SHA256: 99bc78510a377e6b7712cd120a76df844a9cb311616f682aa6046047e5bdfb58
     steps:
       - uses: actions/checkout@v4
       - run: docker compose up -d --build
       - run: |
           for attempt in $(seq 1 30); do
-            curl -fsS http://localhost:8088/api/pack/status && break
+            if curl -fsS http://localhost:8088/api/pack/status; then
+              exit 0
+            fi
             sleep 2
           done
-      - run: ./scripts/smoke_test.sh
+          exit 1
+      - run: sh ./scripts/security_negative_test.sh
+      - name: Open a disposable local-only release gate
+        run: |
+          docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U scenechain -d scenechain \
+            -c "UPDATE release_gate SET protocol_sha256='$PROTOCOL_SHA256', manifest_sha256='$MANIFEST_SHA256', preregistration_id='LOCAL-SMOKE-NOT-AN-APPROVAL', ethics_reference='LOCAL-SMOKE-NOT-AN-APPROVAL', data_protection_reference='LOCAL-SMOKE-NOT-AN-APPROVAL', approved_at=now(), approved_by='LOCAL-SMOKE-NOT-AN-APPROVAL', recruitment_enabled=TRUE WHERE singleton=TRUE;"
+          SCENECHAIN_PROTOCOL_SHA256="$PROTOCOL_SHA256" SCENECHAIN_RECRUITMENT_ENABLED=true \
+            docker compose up -d --force-recreate backend frontend
+      - name: Wait for the gated application
+        run: |
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://localhost:8088/api/pack/status | grep -q '"recruitmentEnabled":true'; then
+              exit 0
+            fi
+            sleep 2
+          done
+          exit 1
+      - run: sh ./scripts/smoke_test.sh
       - if: always()
         run: docker compose logs --no-color
       - if: always()
