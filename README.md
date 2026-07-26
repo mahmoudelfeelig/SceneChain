@@ -1,5 +1,7 @@
 # SceneChain
 
+[![SceneChain CI](https://github.com/mahmoudelfeelig/SceneChain/actions/workflows/ci.yml/badge.svg)](https://github.com/mahmoudelfeelig/SceneChain/actions/workflows/ci.yml)
+
 SceneChain is a research prototype comparing manual password login with a
 five-stage graphical passphrase. Each stage combines a location on a stable
 full-scene image with a discrete directional action.
@@ -77,11 +79,21 @@ Useful verification commands are:
 
 ```bash
 docker compose config --quiet
-docker compose run --rm backend mvn test
-docker compose run --rm frontend npm run build
-docker compose run --rm frontend npm test
-python3 scripts/validate_scene_pack.py path/to/formal-manifest.json
+mvn --file backend/pom.xml verify
+npm --prefix frontend ci
+npm --prefix frontend run lint
+npm --prefix frontend test
+npm --prefix frontend run build
+npm --prefix frontend audit --audit-level=high
+python3 scripts/validate_scene_pack.py scene-pack/v1/manifest.json
 ```
+
+The Docker images are runtime images and intentionally omit Maven and Node.js;
+run the source-level commands above locally or rely on the equivalent GitHub
+Actions jobs. The integration workflow additionally starts a fresh Compose
+stack, checks security-negative behavior while recruitment is closed, opens a
+clearly labelled disposable local gate, and completes enrollment and
+authentication before deleting the test volume.
 
 The local-only scene reviewer binds to loopback and edits the staging manifest
 only after explicit operator actions:
@@ -110,8 +122,15 @@ information, desktop/laptop study UI, and a production-oriented Compose overlay.
 
 The 48-image CC0 pack, protocol, policy, preregistration text, data schema, and
 internal release evidence are frozen. The normative sources are `docs/protocol.md`
-and `docs/protocol-conformance.md`; older review files are historical only.
+and `docs/protocol-conformance.md`.
 Recruitment remains technically closed until the preregistration identifier,
 pilot-derived duration, institutional contacts, compensation, hosting details,
 written ethics decision, and written data-protection decision are complete and
 recorded in the release gate.
+
+## License
+
+The software and project documentation are available under the
+[MIT License](LICENSE). Scene assets are separately dedicated to the public
+domain under CC0; their per-file source and license evidence remain recorded in
+the frozen scene-pack manifest.
