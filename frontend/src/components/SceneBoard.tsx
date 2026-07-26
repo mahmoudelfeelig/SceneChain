@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import type { Scene } from '../types'
 import { MARKERS, MARKER_GLYPHS } from '../lib/protocol'
 
@@ -14,7 +14,6 @@ interface Props {
 export function SceneBoard({ scene, selectedCell, selectedMarker, mode, onCell, onMarker }: Props) {
   const [focusedCell, setFocusedCell] = useState(selectedCell ?? 0)
   const cellRefs = useRef<Array<HTMLButtonElement | null>>([])
-  useEffect(() => { if (selectedCell !== undefined) setFocusedCell(selectedCell) }, [selectedCell])
   const move = (cell: number, key: string) => {
     const row = Math.floor(cell / 24)
     const column = cell % 24

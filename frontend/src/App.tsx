@@ -122,8 +122,8 @@ function Practice({ onDone }: { onDone: () => void }) {
 }
 
 function Enrollment({ onDone, onCancel }: { onDone: (handle: string) => void; onCancel: () => void }) {
-  const startedAt = useRef(performance.now())
-  const stageStartedAt = useRef(performance.now())
+  const startedAt = useRef(0)
+  const stageStartedAt = useRef(0)
   const [data, setData] = useState<EnrollmentResponse | null>(null)
   const [index, setIndex] = useState(0)
   const [cell, setCell] = useState<number>()
@@ -139,7 +139,12 @@ function Enrollment({ onDone, onCancel }: { onDone: (handle: string) => void; on
 
   useEffect(() => { api.post<EnrollmentResponse>('/api/enrollments/start', {
     informed: true, adult: true, voluntary: true, researchMetrics: true, deletionRights: true, comprehensionPassed: true,
-  }).then(setData).catch(e => setError(e.message)) }, [])
+  }).then(response => {
+    const now = performance.now()
+    startedAt.current = now
+    stageStartedAt.current = now
+    setData(response)
+  }).catch(e => setError(e.message)) }, [])
   if (!data) return <Shell title="Preparing private enrollment" onCancel={onCancel}><p>{error || 'Assigning five cue scenes…'}</p></Shell>
 
   const scene = data.scenes[index]
@@ -223,8 +228,8 @@ function GraphicalLogin({ handle, setHandle, mode, setMode, onDone, onPassword, 
   handle: string; setHandle: (v: string) => void; mode: Mode; setMode: (m: Mode) => void
   onDone: () => void; onPassword: () => void; onCancel: () => void; locked?: boolean
 }) {
-  const startedAt = useRef(performance.now())
-  const stageStartedAt = useRef(performance.now())
+  const startedAt = useRef(0)
+  const stageStartedAt = useRef(0)
   const [attempt, setAttempt] = useState<AttemptResponse | null>(null)
   const [index, setIndex] = useState(0)
   const [selectedScene, setSelectedScene] = useState<number>()
