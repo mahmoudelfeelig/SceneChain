@@ -1,0 +1,28 @@
+services:
+  postgres:
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U scenechain_migration -d scenechain"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    restart: unless-stopped
+
+  backend:
+    restart: unless-stopped
+
+  frontend:
+    container_name: scenechain-web
+    restart: unless-stopped
+    ports: !reset []
+    expose:
+      - "80"
+    networks:
+      - internal
+      - web
+
+networks:
+  web:
+    external: true

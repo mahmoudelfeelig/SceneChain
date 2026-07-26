@@ -1,0 +1,67 @@
+name: Deploy to Hetzner
+
+on:
+  workflow_run:
+    workflows: ["SceneChain CI"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: scenechain-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: >-
+      vars.HETZNER_DEPLOY_ENABLED == 'true' &&
+      (
+        github.event_name == 'workflow_dispatch' ||
+        (
+          github.event.workflow_run.conclusion == 'success' &&
+          github.event.workflow_run.head_branch == 'main'
+        )
+      )
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Configure deployment SSH identity
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.HETZNER_SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.HETZNER_SSH_KNOWN_HOSTS }}
+        run: |
+          test -n "$SSH_PRIVATE_KEY"
+          test -n "$SSH_KNOWN_HOSTS"
+          install -d -m 700 "$HOME/.ssh"
+          printf '%s\n' "$SSH_PRIVATE_KEY" > "$HOME/.ssh/scenechain_deploy"
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/scenechain_deploy" "$HOME/.ssh/known_hosts"
+
+      - name: Deploy tested main revision
+        env:
+          DEPLOY_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+          SSH_HOST: ${{ vars.HETZNER_HOST }}
+          SSH_PORT: ${{ vars.HETZNER_SSH_PORT }}
+          SSH_USER: ${{ vars.HETZNER_USER }}
+        run: |
+          test -n "$DEPLOY_SHA"
+          test -n "$SSH_HOST"
+          test -n "$SSH_USER"
+          SSH_PORT="${SSH_PORT:-22}"
+          ssh \
+            -i "$HOME/.ssh/scenechain_deploy" \
+            -o BatchMode=yes \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            -p "$SSH_PORT" \
+            "$SSH_USER@$SSH_HOST" \
+            "set -eu
+             cd /opt/scenechain
+             git fetch origin main
+             test \"\$(git rev-parse origin/main)\" = \"$DEPLOY_SHA\"
+             git checkout main
+             git pull --ff-only origin main
+             sh scripts/deploy_hetzner.sh"

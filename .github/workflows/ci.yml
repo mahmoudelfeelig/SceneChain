@@ -46,6 +46,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - run: docker compose config --quiet
+      - run: docker compose --env-file .env.example -f docker-compose.yml -f docker-compose.prod.yml -f deploy/docker-compose.hetzner.yml config --quiet
       - run: python3 -m py_compile scripts/*.py
       - run: sh -n scripts/*.sh
       - run: python3 -m json.tool protocol/schemas/credential.schema.json >/dev/null
