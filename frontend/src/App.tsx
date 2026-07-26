@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { Eye, EyeOff, KeyRound, LogOut, ScanLine, ShieldCheck } from 'lucide-react'
+import { AlertTriangle, ArrowRight, Eye, EyeOff, Info, KeyRound, LogOut, PenLine, ScanLine, ShieldCheck, UserPlus } from 'lucide-react'
 import { api } from './api/client'
 import { ActionPad } from './components/ActionPad'
 import { SceneBoard } from './components/SceneBoard'
@@ -8,22 +8,59 @@ import type { AttemptResponse, EnrollmentResponse, Mode, Stage } from './types'
 type View = 'home' | 'practice' | 'consent' | 'privacy' | 'enroll' | 'study' | 'login' | 'password' | 'workspace'
 type StudyState = { condition: 'password' | 'direct' | 'shielded' | 'complete'; phase: 'practice' | 'measured' | 'workload' | 'retention' | 'complete'; period: number; trialNumber: number; practiceSuccesses: number; retentionPeriod: number; retentionReady: boolean; retentionDueAt?: string; complete: boolean }
 
+const PATHS: Record<View, string> = {
+  home: '/',
+  practice: '/practice',
+  consent: '/research/consent',
+  privacy: '/privacy',
+  enroll: '/research/enroll',
+  study: '/research/session',
+  login: '/sign-in',
+  password: '/sign-in/password',
+  workspace: '/workspace',
+}
+
+const viewFromPath = (path: string): View => {
+  const entry = Object.entries(PATHS).find(([, value]) => value === path.replace(/\/+$/, '') || (path === '/' && value === '/'))
+  return (entry?.[0] as View | undefined) ?? 'home'
+}
+
+const HERO_SCENES = [
+  { asset: '/scenes/2001.webp', label: 'Scene 1' },
+  { asset: '/scenes/2002.webp', label: 'Scene 2' },
+  { asset: '/scenes/2003.webp', label: 'Scene 3' },
+  { asset: '/scenes/2004.webp', label: 'Scene 4' },
+  { asset: '/scenes/2005.webp', label: 'Scene 5' },
+]
+
 export function App() {
-  const [view, setView] = useState<View>('home')
+  const [view, setView] = useState<View>(() => viewFromPath(window.location.pathname))
   const [handle, setHandle] = useState('')
   const [mode, setMode] = useState<Mode>('direct')
-  const [error, setError] = useState('')
   const [me, setMe] = useState<string | null>(null)
   const [pack, setPack] = useState<{ mode: string; sceneCount: number; recruitmentEnabled: boolean } | null>(null)
   const [privacyReturn, setPrivacyReturn] = useState<View>('home')
 
+  useEffect(() => {
+    const syncRoute = () => setView(viewFromPath(window.location.pathname))
+    window.addEventListener('popstate', syncRoute)
+    return () => window.removeEventListener('popstate', syncRoute)
+  }, [])
   useEffect(() => { api.get<{ handle: string; studyRequired: boolean }>('/api/me').then(r => {
     setMe(r.handle); setHandle(r.handle)
-    setView(r.studyRequired ? 'study' : 'workspace')
+    if (['/', '/sign-in', '/sign-in/password'].includes(window.location.pathname)) {
+      const next = r.studyRequired ? 'study' : 'workspace'
+      window.history.replaceState({}, '', PATHS[next])
+      setView(next)
+    }
   }).catch(() => undefined) }, [])
   useEffect(() => { api.get<{ mode: string; sceneCount: number; recruitmentEnabled: boolean }>('/api/pack/status').then(setPack).catch(() => undefined) }, [])
 
-  const go = (next: View) => { setError(''); setView(next) }
+  const go = (next: View, replace = false) => {
+    window.history[replace ? 'replaceState' : 'pushState']({}, '', PATHS[next])
+    setView(next)
+    window.scrollTo({ top: 0, behavior: 'instant' })
+  }
   if (view === 'practice') return <Practice onDone={() => go('home')} />
   if (view === 'consent') return <Consent onAccept={() => go('enroll')} onCancel={() => go('home')} onPrivacy={() => { setPrivacyReturn('consent'); go('privacy') }} />
   if (view === 'privacy') return <PrivacyNotice onBack={() => go(privacyReturn)} />
@@ -36,30 +73,46 @@ export function App() {
   if (view === 'workspace') return <Workspace handle={me ?? handle} onLogout={async () => { await api.delete('/api/session'); setMe(null); go('home') }} onDeleted={() => { setMe(null); setHandle(''); go('home') }} />
 
   return <main className="landing">
-    <header className="brand"><span className="brand-mark"><ScanLine size={20} /></span>SceneChain <small>research prototype</small></header>
+    <SiteHeader current="home" go={go} recruitmentEnabled={pack?.recruitmentEnabled} />
+    <div className="research-alert" role="note"><AlertTriangle size={20} /><strong>Research prototype</strong><span>Never reuse a real password here.</span></div>
     <section className="hero">
-      <div className="experiment-warning" role="note"><strong>Research experiment only.</strong> This authenticator protects no valuable account, service, money, or personal files. Never reuse a real password here.</div>
-      <div className="eyebrow">SceneChain protocol · {pack?.mode === 'formal' ? `approved ${pack.sceneCount}-scene pack` : 'development scene pack'}</div>
-      <h1>A visual passphrase built as a chain of places and actions.</h1>
-      <p>Five full-scene cues. One remembered location and direction per scene. Direct and observation-shielded study conditions, evaluated only after the complete chain.</p>
-      <div className="hero-actions">
-        <button className="primary" disabled={!pack?.recruitmentEnabled} onClick={() => go('consent')}><KeyRound size={18} />{pack?.recruitmentEnabled ? 'Create a study credential' : 'Recruitment not yet open'}</button>
-        <button className="secondary" onClick={() => go('login')}><ShieldCheck size={18} />Authenticate</button>
-        <button className="secondary" onClick={() => go('practice')}><ScanLine size={18} />Try a practice chain</button>
+      <div className="hero-copy">
+        <h1>Remember a route.<br />Prove it visually.</h1>
+        <span className="hero-rule" aria-hidden="true" />
+        <div className="eyebrow hero-subtitle">A five-scene authentication study</div>
+        <p>You’ll see five real-world scenes. For each one, remember a location and direction. Verification happens only after the complete chain.</p>
+        <button className="primary hero-cta" onClick={() => go('practice')}>Explore the practice flow <ArrowRight size={19} /></button>
       </div>
-      {error && <p className="error" role="alert">{error}</p>}
+      <div className="scene-journey" aria-label="Five scene authentication journey">
+        {HERO_SCENES.map((scene, index) => <article className="journey-step" key={scene.asset}>
+          <span className="step-number">{index + 1}</span>
+          <img src={scene.asset} alt={`Real-world photograph used as ${scene.label.toLowerCase()}`} />
+          <div><strong>{scene.label}</strong><span>Where are you?</span><span>Which direction?</span></div>
+          <ArrowRight className="step-arrow" aria-hidden="true" />
+        </article>)}
+      </div>
     </section>
-    <section className="principles" aria-label="Protocol principles">
-      <article><strong>Five-stage verification</strong><span>No stage reveals whether it was correct.</span></article>
-      <article><strong>Exact canonical cells</strong><span>Stable 24 × 16 coordinates without fuzzy acceptance.</span></article>
-      <article><strong>Honest security scope</strong><span>A knowledge factor, not phishing-resistant MFA.</span></article>
-    </section>
-    <footer>
-      <span>{pack?.mode === 'formal' ? 'Approved CC0 research scene pack loaded.' : 'Development scenes are not the formal CC0 research pack.'}</span>
-      <button className="text-button" onClick={() => { setPrivacyReturn('home'); go('privacy') }}>Privacy and participant information</button>
-      <a className="text-button" href="https://github.com/mahmoudelfeelig/SceneChain" rel="noreferrer">Corresponding source code</a>
-    </footer>
+    <nav className="route-directory" aria-label="Explore SceneChain">
+      <button onClick={() => go('practice')}><PenLine /><span><strong>Practice</strong><small>Explore the complete five-scene flow at your own pace.</small></span><ArrowRight /></button>
+      <button onClick={() => go('consent')} disabled={!pack?.recruitmentEnabled}><UserPlus /><span><strong>Enrollment</strong><small>Learn about the study and see if participation is open.</small></span><ArrowRight /></button>
+      <button onClick={() => go('login')}><ShieldCheck /><span><strong>Authentication</strong><small>Sign in and complete your five-scene chain.</small></span><ArrowRight /></button>
+      <button onClick={() => { setPrivacyReturn('home'); go('privacy') }}><Info /><span><strong>Participant information</strong><small>Privacy, data handling, and your rights as a participant.</small></span><ArrowRight /></button>
+    </nav>
+    <footer className="landing-footer"><span>Verified only after the complete chain.</span><span>{pack?.mode === 'formal' ? 'Approved CC0 research scene pack loaded.' : 'Research services are currently unavailable.'}</span><a href="https://github.com/mahmoudelfeelig/SceneChain" rel="noreferrer">Source code</a></footer>
   </main>
+}
+
+function SiteHeader({ current, go, recruitmentEnabled }: { current: View; go: (view: View) => void; recruitmentEnabled?: boolean }) {
+  return <header className="site-header">
+    <button className="brand brand-button" onClick={() => go('home')} aria-label="SceneChain home"><span className="brand-mark"><ScanLine size={23} /></span><span>SceneChain</span></button>
+    <nav aria-label="Primary navigation">
+      <button className={current === 'home' ? 'active' : ''} onClick={() => go('home')}>Overview</button>
+      <button onClick={() => go('practice')}>How it works</button>
+      <button className={current === 'practice' ? 'active' : ''} onClick={() => go('practice')}>Practice</button>
+      <button className={current === 'privacy' ? 'active' : ''} onClick={() => go('privacy')}>Privacy</button>
+    </nav>
+    <div className="header-actions"><button className="secondary" onClick={() => go('login')}>Sign in</button><button className="primary" disabled={!recruitmentEnabled} onClick={() => go('consent')}>Join study <ArrowRight size={18} /></button></div>
+  </header>
 }
 
 function Consent({ onAccept, onCancel, onPrivacy }: { onAccept: () => void; onCancel: () => void; onPrivacy: () => void }) {
@@ -103,11 +156,11 @@ function PrivacyNotice({ onBack }: { onBack: () => void }) {
 }
 
 const PRACTICE_SCENES = [
-  { id: 9001, version: 0, family: 'urban', title: 'Practice courtyard', asset: '/scenes/urban.svg', license: 'DEVELOPMENT-ONLY' },
-  { id: 9002, version: 0, family: 'workshop', title: 'Practice workshop', asset: '/scenes/workshop.svg', license: 'DEVELOPMENT-ONLY' },
-  { id: 9003, version: 0, family: 'library', title: 'Practice reading room', asset: '/scenes/library.svg', license: 'DEVELOPMENT-ONLY' },
-  { id: 9004, version: 0, family: 'garden', title: 'Practice glasshouse', asset: '/scenes/garden.svg', license: 'DEVELOPMENT-ONLY' },
-  { id: 9005, version: 0, family: 'market', title: 'Practice market', asset: '/scenes/market.svg', license: 'DEVELOPMENT-ONLY' },
+  { id: 9001, version: 0, family: 'urban', title: 'Practice city route', asset: '/scenes/2001.webp', license: 'CC0-1.0' },
+  { id: 9002, version: 0, family: 'architecture', title: 'Practice entrance', asset: '/scenes/2002.webp', license: 'CC0-1.0' },
+  { id: 9003, version: 0, family: 'landscape', title: 'Practice park route', asset: '/scenes/2003.webp', license: 'CC0-1.0' },
+  { id: 9004, version: 0, family: 'urban', title: 'Practice side street', asset: '/scenes/2004.webp', license: 'CC0-1.0' },
+  { id: 9005, version: 0, family: 'transit', title: 'Practice station', asset: '/scenes/2005.webp', license: 'CC0-1.0' },
 ]
 
 function Practice({ onDone }: { onDone: () => void }) {
@@ -386,7 +439,7 @@ function Workspace({ handle, onLogout, onDeleted }: { handle: string; onLogout: 
 function Shell({ title, progress, onCancel, children }: { title: string; progress?: string; onCancel: () => void; children: ReactNode }) {
   const heading = useRef<HTMLHeadingElement>(null)
   useEffect(() => { heading.current?.focus() }, [title])
-  return <main className="app-shell"><header className="topbar"><div className="brand"><span className="brand-mark"><ScanLine size={20} /></span><span className="brand-title">{title}</span></div>
-    <div className="top-actions">{progress && <span className="progress-label">{progress}</span>}<button className="text-button" onClick={onCancel}>Exit</button></div></header>
+  return <main className="app-shell"><header className="topbar"><button className="brand brand-button" onClick={onCancel} aria-label="Exit to previous page"><span className="brand-mark"><ScanLine size={20} /></span><span>SceneChain</span><span className="brand-divider" /><span className="brand-title">{title}</span></button>
+    <div className="top-actions">{progress && <span className="progress-label">Scene {progress}</span>}<button className="secondary compact" onClick={onCancel}>Exit flow</button></div></header>
     <section className="flow-content"><h1 className="sr-only" ref={heading} tabIndex={-1}>{title}</h1>{children}</section></main>
 }
