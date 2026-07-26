@@ -69,8 +69,15 @@ h1, h2, h3, strong, .brand { font-family: Inter, ui-sans-serif, system-ui, sans-
 .route-directory strong { font-size: 1rem; }
 .route-directory small { color: var(--muted); font-size: .9rem; line-height: 1.5; }
 .route-directory button > svg:last-child { align-self: end; }
-.landing-footer { padding: 22px clamp(24px, 4vw, 64px) 34px; display: flex; justify-content: space-between; gap: 24px; color: var(--muted); font-size: .84rem; background: #fbfcfe; }
-.landing-footer a { color: var(--blue); }
+.landing-footer { min-height: 72px; padding: 14px clamp(24px, 4vw, 64px); display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; gap: 18px; color: var(--muted); font-size: .84rem; background: #fbfcfe; border-top: 1px solid var(--line); }
+.footer-brand, .footer-github { width: 42px; height: 42px; display: inline-flex; align-items: center; justify-content: center; border-radius: 12px; color: var(--ink); transition: color .18s ease, background .18s ease, transform .18s ease; }
+.footer-brand:hover, .footer-github:hover { color: var(--blue); background: var(--blue-soft); transform: translateY(-1px); }
+.footer-elephant { width: 32px; height: 32px; display: block; object-fit: contain; }
+.footer-copy { display: grid; justify-items: center; gap: 3px; text-align: center; }
+.footer-copy > span { color: var(--ink); font-weight: 700; }
+.footer-copy small { color: var(--muted); font-size: .75rem; line-height: 1.35; }
+.footer-github { justify-self: end; }
+.footer-github svg { width: 22px; height: 22px; stroke-width: 1.8; }
 
 .primary, .secondary { min-height: 48px; border-radius: 4px; padding: 0 20px; display: inline-flex; align-items: center; justify-content: center; gap: 9px; font-weight: 700; transition: background .18s ease, border-color .18s ease, transform .18s ease; }
 .primary { border: 1px solid var(--blue); color: white; background: var(--blue); box-shadow: 0 7px 18px rgba(18,63,212,.15); }
@@ -184,7 +191,8 @@ code { background: #edf0f4; padding: 3px 6px; border-radius: 4px; font-size: .95
   .step-arrow { grid-column: 3; grid-row: 2; }
   .route-directory { grid-template-columns: 1fr; padding-inline: 18px; }
   .route-directory button { border-right: 0; border-bottom: 1px solid var(--line); padding-inline: 8px; }
-  .landing-footer { flex-direction: column; padding-inline: 18px; }
+  .landing-footer { padding-inline: 18px; grid-template-columns: 42px 1fr 42px; gap: 10px; }
+  .footer-copy small { max-width: 38ch; font-size: .7rem; }
   .topbar { padding-inline: 18px; }
   .brand-title, .brand-divider { display: none; }
   .flow-content { padding-inline: 18px; }

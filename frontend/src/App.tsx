@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { AlertTriangle, ArrowRight, Eye, EyeOff, Info, KeyRound, LogOut, PenLine, ScanLine, ShieldCheck, UserPlus } from 'lucide-react'
+import { AlertTriangle, ArrowRight, Eye, EyeOff, Github, Info, KeyRound, LogOut, PenLine, ScanLine, ShieldCheck, UserPlus } from 'lucide-react'
 import { api } from './api/client'
 import { ActionPad } from './components/ActionPad'
 import { SceneBoard } from './components/SceneBoard'
@@ -98,7 +98,27 @@ export function App() {
       <button onClick={() => go('login')}><ShieldCheck /><span><strong>Authentication</strong><small>Sign in and complete your five-scene chain.</small></span><ArrowRight /></button>
       <button onClick={() => { setPrivacyReturn('home'); go('privacy') }}><Info /><span><strong>Participant information</strong><small>Privacy, data handling, and your rights as a participant.</small></span><ArrowRight /></button>
     </nav>
-    <footer className="landing-footer"><span>Verified only after the complete chain.</span><span>{pack?.mode === 'formal' ? 'Approved CC0 research scene pack loaded.' : 'Research services are currently unavailable.'}</span><a href="https://github.com/mahmoudelfeelig/SceneChain" rel="noreferrer">Source code</a></footer>
+    <footer className="landing-footer">
+      <a className="footer-brand" href="https://elfeel.me" target="_blank" rel="noreferrer" aria-label="Open elfeel.me">
+        <img className="footer-elephant" src="/assets/brand/elephant-logo.png" alt="" />
+      </a>
+      <div className="footer-copy">
+        <span>© Mahmoud elfeel 2026</span>
+        <small>
+          Verified only after the complete chain.{' '}
+          {pack?.mode === 'formal' ? 'Approved CC0 research scene pack loaded.' : 'Research services are currently unavailable.'}
+        </small>
+      </div>
+      <a
+        className="footer-github"
+        href="https://github.com/mahmoudelfeelig/SceneChain"
+        target="_blank"
+        rel="noreferrer"
+        aria-label="Open SceneChain GitHub repository"
+      >
+        <Github aria-hidden="true" />
+      </a>
+    </footer>
   </main>
 }
 
