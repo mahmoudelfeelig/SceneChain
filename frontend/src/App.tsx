@@ -54,7 +54,11 @@ export function App() {
       <article><strong>Exact canonical cells</strong><span>Stable 24 × 16 coordinates without fuzzy acceptance.</span></article>
       <article><strong>Honest security scope</strong><span>A knowledge factor, not phishing-resistant MFA.</span></article>
     </section>
-    <footer><span>{pack?.mode === 'formal' ? 'Approved CC0 research scene pack loaded.' : 'Development scenes are not the formal CC0 research pack.'}</span><button className="text-button" onClick={() => { setPrivacyReturn('home'); go('privacy') }}>Privacy and participant information</button></footer>
+    <footer>
+      <span>{pack?.mode === 'formal' ? 'Approved CC0 research scene pack loaded.' : 'Development scenes are not the formal CC0 research pack.'}</span>
+      <button className="text-button" onClick={() => { setPrivacyReturn('home'); go('privacy') }}>Privacy and participant information</button>
+      <a className="text-button" href="https://github.com/mahmoudelfeelig/SceneChain" rel="noreferrer">Corresponding source code</a>
+    </footer>
   </main>
 }
 

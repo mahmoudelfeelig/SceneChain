@@ -130,7 +130,10 @@ recorded in the release gate.
 
 ## License
 
-The software and project documentation are available under the
-[MIT License](LICENSE). Scene assets are separately dedicated to the public
-domain under CC0; their per-file source and license evidence remain recorded in
-the frozen scene-pack manifest.
+The software and project documentation are licensed under the
+[GNU Affero General Public License v3.0](LICENSE), using the
+`AGPL-3.0-only` SPDX identifier. Anyone operating a modified version over a
+network must make its corresponding source available as required by the
+license. Scene assets are separately dedicated to the public domain under CC0;
+their per-file source and license evidence remain recorded in the frozen
+scene-pack manifest.
