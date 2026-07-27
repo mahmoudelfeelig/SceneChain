@@ -35,27 +35,14 @@ timing are not credential material.
 
 ## Documents
 
-- [Reviewed protocol](docs/protocol.md)
-- [Threat model](docs/threat-model.md)
-- [Scene-pack and cell policy](docs/scene-pack.md)
-- [Scene-pack selection record](docs/scene-pack-selection.md)
-- [Application architecture](docs/architecture.md)
-- [Security baseline](docs/security-baseline.md)
-- [ASVS evidence map](docs/asvs-evidence.md)
-- [Implemented threat review](docs/implementation-threat-review.md)
-- [Research plan](docs/research-plan.md)
-- [Preregistration](docs/preregistration.md)
-- [Power analysis](docs/power-analysis.md)
-- [Participant information](docs/participant-information.md)
-- [Consent form](docs/consent-form.md)
-- [Retention and deletion](docs/retention-deletion-plan.md)
-- [Data-protection assessment](docs/data-protection-impact-assessment.md)
-- [Ethics application package](docs/ethics-application.md)
+- [Research review brief](docs/review-brief.md)
+- [Frozen protocol](docs/protocol.md)
+- [Study plan and preregistration draft](docs/study-plan.md)
+- [Participant information and consent](docs/participant-materials.md)
+- [Ethics and data-protection package](docs/ethics-and-data-protection.md)
 - [Researcher runbook](docs/researcher-runbook.md)
-- [Protocol-to-implementation conformance](docs/protocol-conformance.md)
-- [Performance budgets](docs/performance-budget.md)
-- [Final verification evidence](docs/final-review-2026-07-22/README.md)
-- [Supervisor review brief](docs/supervisor-review-brief.md)
+- [Technical assurance](docs/technical-assurance.md)
+- [Scene-pack policy and provenance](docs/scene-pack.md)
 
 ## Run the prototype
 
@@ -121,9 +108,9 @@ participant deletion, audited pseudonymised exports, Redis-backed single-use
 attempts, PostgreSQL migrations, cryptographic test vectors, responsive public
 information, desktop/laptop study UI, and a production-oriented Compose overlay.
 
-The 48-image CC0 pack, protocol, policy, preregistration text, data schema, and
-internal release evidence are frozen. The normative sources are `docs/protocol.md`
-and `docs/protocol-conformance.md`.
+The 48-image CC0 pack, protocol, data schema, and technical release identifiers
+are frozen. The normative study source is `docs/protocol.md`; consolidated
+implementation evidence is in `docs/technical-assurance.md`.
 Recruitment remains technically closed until the preregistration identifier,
 pilot-derived duration, institutional contacts, compensation, hosting details,
 written ethics decision, and written data-protection decision are complete and

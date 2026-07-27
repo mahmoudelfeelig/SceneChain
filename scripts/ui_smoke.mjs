@@ -1,9 +1,11 @@
 import { chromium } from '../frontend/node_modules/playwright/index.mjs'
 import { strict as assert } from 'node:assert'
 import { resolve } from 'node:path'
+import { mkdirSync } from 'node:fs'
 
 const base = process.env.SCENECHAIN_URL ?? 'http://host.docker.internal:8088'
-const output = resolve(process.env.SCENECHAIN_SCREENSHOTS ?? 'docs/final-review-2026-07-22')
+const output = resolve(process.env.SCENECHAIN_SCREENSHOTS ?? 'test-results/ui-smoke')
+mkdirSync(output, { recursive: true })
 const browser = await chromium.launch({ headless: true,
   ...(process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : {}) })
 

@@ -130,8 +130,31 @@ The formal pack is frozen by manifest digest. A scene, selectable-cell policy, o
 delivery-asset change increments the internal compatibility version and requires
 affected credentials to be re-enrolled.
 
+## Frozen selection record
+
+Pack version 1 contains 48 CC0 scenes: six each from urban, workshop, library,
+garden, kitchen, harbor, museum, and market families. Scene IDs 2001 through
+2048 are reserved in family order. Sources come from individual Metropolitan
+Museum of Art Open Access and Wikimedia Commons records. Aggregator labels were
+not accepted as license evidence.
+
+The review removed portraits, isolated objects, diagrams, maps, aerial views,
+weak family matches, large blank areas, duplicates, privacy-sensitive
+photographs, poor landmark distributions, and uploads with insufficient
+relicensing evidence.
+
+Every accepted source preserves its source page, CC0 evidence, dimensions, and
+source digest. Canonical, delivery, and thumbnail derivatives have independent
+SHA-256 digests in `scene-pack/v1/manifest.json`. The metadata records privacy,
+text, brand, plate, cultural-property, low-vision, and hotspot-risk review.
+
+The deterministic shortlist is retained in
+`protocol/manifests/selected-sources.json`. Running discovery again may change
+search ordering and must never silently replace the frozen pack. The backend
+independently verifies approval state, scene count, family balance, cell
+metadata, and every derivative hash at startup.
+
 ## Source guidance
 
-- [Smithsonian Open Access FAQ](https://www.si.edu/openaccess/faq)
 - [Wikimedia Commons reuse guidance](https://commons.wikimedia.org/wiki/Commons%3AReusing_content_outside_Wikimedia/en)
 - [The Met Open Access policy](https://www.metmuseum.org/policies/image-resources)
