@@ -55,6 +55,7 @@ timing are not credential material.
 - [Protocol-to-implementation conformance](docs/protocol-conformance.md)
 - [Performance budgets](docs/performance-budget.md)
 - [Final verification evidence](docs/final-review-2026-07-22/README.md)
+- [Supervisor review brief](docs/supervisor-review-brief.md)
 
 ## Run the prototype
 
