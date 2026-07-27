@@ -148,9 +148,9 @@ function HowItWorks({ go, recruitmentEnabled, packMode }: { go: (view: View) => 
       <article className="how-step">
         <div className="how-demo">
           <img src="/scenes/2003.webp" alt="A real-world street scene with a direction selection demonstration" />
-          <span className="demo-direction" aria-hidden="true"><Navigation /><strong>North-east</strong></span>
+          <span className="demo-direction" aria-hidden="true"><Navigation /><strong>East</strong></span>
         </div>
-        <div className="how-step-copy"><span>02</span><h2>Add a direction</h2><p>Pair that location with one of eight directions to create the scene step.</p></div>
+        <div className="how-step-copy"><span>02</span><h2>Add a direction</h2><p>Pair that location with one of four cardinal directions to create the scene step.</p></div>
       </article>
       <article className="how-step">
         <div className="how-demo demo-chain">
