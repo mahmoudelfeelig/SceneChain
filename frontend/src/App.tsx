@@ -1,15 +1,16 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { AlertTriangle, ArrowRight, Eye, EyeOff, Github, Info, KeyRound, LogOut, PenLine, ScanLine, ShieldCheck, UserPlus } from 'lucide-react'
+import { AlertTriangle, ArrowRight, CheckCheck, Eye, EyeOff, Github, Info, KeyRound, LogOut, MapPin, Navigation, PenLine, ScanLine, ShieldCheck, UserPlus } from 'lucide-react'
 import { api } from './api/client'
 import { ActionPad } from './components/ActionPad'
 import { SceneBoard } from './components/SceneBoard'
 import type { AttemptResponse, EnrollmentResponse, Mode, Stage } from './types'
 
-type View = 'home' | 'practice' | 'consent' | 'privacy' | 'enroll' | 'study' | 'login' | 'password' | 'workspace'
+type View = 'home' | 'how' | 'practice' | 'consent' | 'privacy' | 'enroll' | 'study' | 'login' | 'password' | 'workspace'
 type StudyState = { condition: 'password' | 'direct' | 'shielded' | 'complete'; phase: 'practice' | 'measured' | 'workload' | 'retention' | 'complete'; period: number; trialNumber: number; practiceSuccesses: number; retentionPeriod: number; retentionReady: boolean; retentionDueAt?: string; complete: boolean }
 
 const PATHS: Record<View, string> = {
   home: '/',
+  how: '/how-it-works',
   practice: '/practice',
   consent: '/research/consent',
   privacy: '/privacy',
@@ -61,6 +62,7 @@ export function App() {
     setView(next)
     window.scrollTo({ top: 0, behavior: 'instant' })
   }
+  if (view === 'how') return <HowItWorks go={go} recruitmentEnabled={pack?.recruitmentEnabled} packMode={pack?.mode} />
   if (view === 'practice') return <Practice onDone={() => go('home')} />
   if (view === 'consent') return <Consent onAccept={() => go('enroll')} onCancel={() => go('home')} onPrivacy={() => { setPrivacyReturn('consent'); go('privacy') }} />
   if (view === 'privacy') return <PrivacyNotice onBack={() => go(privacyReturn)} />
@@ -98,7 +100,12 @@ export function App() {
       <button onClick={() => go('login')}><ShieldCheck /><span><strong>Authentication</strong><small>Sign in and complete your five-scene chain.</small></span><ArrowRight /></button>
       <button onClick={() => { setPrivacyReturn('home'); go('privacy') }}><Info /><span><strong>Participant information</strong><small>Privacy, data handling, and your rights as a participant.</small></span><ArrowRight /></button>
     </nav>
-    <footer className="landing-footer">
+    <SiteFooter packMode={pack?.mode} />
+  </main>
+}
+
+function SiteFooter({ packMode }: { packMode?: string }) {
+  return <footer className="landing-footer">
       <a className="footer-brand" href="https://elfeel.me" target="_blank" rel="noreferrer" aria-label="Open elfeel.me">
         <img className="footer-elephant" src="/assets/brand/elephant-logo.png" alt="" />
       </a>
@@ -106,7 +113,7 @@ export function App() {
         <span>© Mahmoud elfeel 2026</span>
         <small>
           Verified only after the complete chain.{' '}
-          {pack?.mode === 'formal' ? 'Approved CC0 research scene pack loaded.' : 'Research services are currently unavailable.'}
+          {packMode === 'formal' ? 'Approved CC0 research scene pack loaded.' : 'Research services are currently unavailable.'}
         </small>
       </div>
       <a
@@ -119,6 +126,48 @@ export function App() {
         <Github aria-hidden="true" />
       </a>
     </footer>
+}
+
+function HowItWorks({ go, recruitmentEnabled, packMode }: { go: (view: View) => void; recruitmentEnabled?: boolean; packMode?: string }) {
+  return <main className="landing how-page">
+    <SiteHeader current="how" go={go} recruitmentEnabled={recruitmentEnabled} />
+    <section className="how-intro">
+      <span className="eyebrow">How it works</span>
+      <h1>A visual route instead of one typed secret.</h1>
+      <p>SceneChain asks you to remember one location and one direction in each of five real-world scenes. The complete route is checked only after the final scene.</p>
+    </section>
+    <section className="how-steps" aria-label="SceneChain demonstration">
+      <article className="how-step">
+        <div className="how-demo">
+          <img src="/scenes/2001.webp" alt="A real-world street scene divided into selectable locations" />
+          <span className="demo-grid" aria-hidden="true" />
+          <span className="demo-pin" aria-hidden="true"><MapPin /></span>
+        </div>
+        <div className="how-step-copy"><span>01</span><h2>Choose a location</h2><p>Select a memorable place in the scene, such as a doorway, sign, or corner.</p></div>
+      </article>
+      <article className="how-step">
+        <div className="how-demo">
+          <img src="/scenes/2003.webp" alt="A real-world street scene with a direction selection demonstration" />
+          <span className="demo-direction" aria-hidden="true"><Navigation /><strong>North-east</strong></span>
+        </div>
+        <div className="how-step-copy"><span>02</span><h2>Add a direction</h2><p>Pair that location with one of eight directions to create the scene step.</p></div>
+      </article>
+      <article className="how-step">
+        <div className="how-demo demo-chain">
+          {[2002, 2004, 2005].map((scene, index) => <span key={scene}>
+            <img src={`/scenes/${scene}.webp`} alt={`Real-world example for route scene ${index + 3}`} />
+            <i>{index + 3}</i>
+          </span>)}
+          <CheckCheck aria-hidden="true" />
+        </div>
+        <div className="how-step-copy"><span>03</span><h2>Complete all five</h2><p>Repeat the same idea across five scenes. Nothing is accepted or rejected until the chain is complete.</p></div>
+      </article>
+    </section>
+    <section className="how-cta">
+      <div><span className="eyebrow">Try it safely</span><h2>The practice route is local and not recorded.</h2></div>
+      <button className="primary" onClick={() => go('practice')}>Start practice <ArrowRight size={18} /></button>
+    </section>
+    <SiteFooter packMode={packMode} />
   </main>
 }
 
@@ -127,7 +176,7 @@ function SiteHeader({ current, go, recruitmentEnabled }: { current: View; go: (v
     <button className="brand brand-button" onClick={() => go('home')} aria-label="SceneChain home"><span className="brand-mark"><ScanLine size={23} /></span><span>SceneChain</span></button>
     <nav aria-label="Primary navigation">
       <button className={current === 'home' ? 'active' : ''} onClick={() => go('home')}>Overview</button>
-      <button onClick={() => go('practice')}>How it works</button>
+      <button className={current === 'how' ? 'active' : ''} onClick={() => go('how')}>How it works</button>
       <button className={current === 'practice' ? 'active' : ''} onClick={() => go('practice')}>Practice</button>
       <button className={current === 'privacy' ? 'active' : ''} onClick={() => go('privacy')}>Privacy</button>
     </nav>
