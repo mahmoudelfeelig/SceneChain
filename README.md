@@ -57,11 +57,16 @@ is deliberately ephemeral because it stores attempts, enrollment state, rate
 limits, and sessions. Stop the stack with `docker compose down`. Add `-v` only
 when you intentionally want to delete enrolled development accounts.
 
-For deployment, combine `docker-compose.yml` with
-`docker-compose.prod.yml`, supply every required secret, and place the included
-`deploy/Caddyfile.example` behind the loopback-bound frontend. The production
-overlay enables secure cookies and separates Flyway's migration role from the
-runtime application role.
+For local production-profile checks, combine `docker-compose.yml` with
+`docker-compose.prod.yml` and supply every required test value. The overlay
+enables secure cookies and separates Flyway's migration role from the runtime
+application role.
+
+Production releases use the repository's minimal OIDC caller after the exact
+`main` CI run succeeds. A restricted release controller owns machine access,
+routing, immutable image promotion, backup, restore, and rollback. This public
+repository intentionally contains no direct-host deployment procedure or
+long-lived deployment credential.
 
 Useful verification commands are:
 

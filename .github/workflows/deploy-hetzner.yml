@@ -1,64 +1,25 @@
-name: Deploy to Hetzner
+name: Deploy SceneChain Production
 
 on:
   workflow_run:
     workflows: ["SceneChain CI"]
     types: [completed]
     branches: [main]
-  workflow_dispatch:
 
 permissions:
+  actions: read
   contents: read
-
-concurrency:
-  group: scenechain-production
-  cancel-in-progress: false
+  id-token: write
 
 jobs:
-  deploy:
+  release:
     if: >-
-      vars.HETZNER_DEPLOY_ENABLED == 'true' &&
-      (
-        github.event_name == 'workflow_dispatch' ||
-        (
-          github.event.workflow_run.conclusion == 'success' &&
-          github.event.workflow_run.head_branch == 'main'
-        )
-      )
-    runs-on: ubuntu-latest
-    environment: production
-    steps:
-      - name: Configure deployment SSH identity
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.HETZNER_SSH_PRIVATE_KEY }}
-        run: |
-          test -n "$SSH_PRIVATE_KEY"
-          install -d -m 700 "$HOME/.ssh"
-          printf '%s\n' "$SSH_PRIVATE_KEY" > "$HOME/.ssh/scenechain_deploy"
-          chmod 600 "$HOME/.ssh/scenechain_deploy"
-
-      - name: Deploy tested main revision
-        env:
-          DEPLOY_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
-          SSH_HOST: ${{ vars.HETZNER_HOST }}
-          SSH_PORT: ${{ vars.HETZNER_SSH_PORT }}
-          SSH_USER: ${{ vars.HETZNER_USER }}
-        run: |
-          test -n "$DEPLOY_SHA"
-          test -n "$SSH_HOST"
-          test -n "$SSH_USER"
-          SSH_PORT="${SSH_PORT:-22}"
-          ssh \
-            -i "$HOME/.ssh/scenechain_deploy" \
-            -o BatchMode=yes \
-            -o IdentitiesOnly=yes \
-            -o StrictHostKeyChecking=accept-new \
-            -p "$SSH_PORT" \
-            "$SSH_USER@$SSH_HOST" \
-            "set -eu
-             cd /opt/scenechain
-             git fetch origin main
-             test \"\$(git rev-parse origin/main)\" = \"$DEPLOY_SHA\"
-             git checkout main
-             git pull --ff-only origin main
-             sh scripts/deploy_hetzner.sh"
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    uses: mahmoudelfeelig/HetznerReleaseGateway/.github/workflows/release.yml@c6079616813545bb0c0da1f649e04de6d89dc366
+    with:
+      app: scenechain
+      source_sha: ${{ github.event.workflow_run.head_sha }}
+      ci_run_id: ${{ github.event.workflow_run.id }}
