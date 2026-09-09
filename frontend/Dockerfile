@@ -6,7 +6,7 @@ COPY . .
 RUN npm run build
 
 FROM nginx:1.29-alpine
-RUN sed -i 's#pid /var/run/nginx.pid;#pid /tmp/nginx.pid;#' /etc/nginx/nginx.conf \
+RUN sed -i 's#pid /run/nginx.pid;#pid /tmp/nginx.pid;#' /etc/nginx/nginx.conf \
     && chown -R nginx:nginx /var/cache/nginx /etc/nginx/conf.d /usr/share/nginx/html
 COPY --chown=nginx:nginx nginx.conf /etc/nginx/conf.d/default.conf
 COPY --chown=nginx:nginx --from=build /work/dist /usr/share/nginx/html
