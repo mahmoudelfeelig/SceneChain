@@ -13,4 +13,6 @@ WORKDIR /app
 COPY --from=build /work/target/scenechain-api-0.1.0.jar app.jar
 USER scenechain
 EXPOSE 8080
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+  CMD wget --quiet --spider http://127.0.0.1:8080/api/pack/status || exit 1
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]
